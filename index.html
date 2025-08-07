@@ -876,6 +876,9 @@
                 // Collect selected destinations
                 const selectedDestinations = getSelectedDestinations();
                 
+                // Collect selected hotels
+                const selectedHotels = getSelectedHotels();
+                
                 // Collect travel level preference
                 const travelLevel = document.querySelector('input[name="travelLevel"]:checked');
                 
@@ -889,6 +892,7 @@
                     nightsPreference: nightsPreference,
                     golfInfo: golfInfo,
                     destinations: selectedDestinations,
+                    hotels: selectedHotels,
                     travelLevel: travelLevel ? {
                         value: travelLevel.value,
                         text: travelLevel.nextElementSibling.querySelector('.option-title').textContent
@@ -904,7 +908,7 @@
                 console.log('Form Data:', formData);
                 
                 // n8n webhook URL
-                const webhookUrl = 'https://n8n-utni.onrender.com/webhook/f5460d91-bbab-4843-87d3-99b1de367526';
+                const webhookUrl = 'https://n8n-utni.onrender.com/webhook/a50bcb3f-8b8a-4628-9e35-75c68a9f50b9';
                 
                 // Submit data to n8n webhook
                 fetch(webhookUrl, {
@@ -939,26 +943,15 @@
         const destinationsData = [
             {
                 id: 'cape-town',
-                name: 'Cape Town and Stellenbosch Wineregion',
+                name: 'Cape Town',
                 subDestinations: [
                     {
                         id: 'cape-town-city',
                         name: 'Cape Town',
                         subDestinations: [
-                            { id: 'camps-bay', name: 'Camps Bay' },
+                            { id: 'city center', name: 'City Center' },
                             { id: 'constantia', name: 'Constantia' },
-                            { id: 'va-waterfront', name: 'Near V&A Waterfront' },
-                            { id: 'cape-peninsula', name: 'Cape Peninsula' }
-                        ]
-                    },
-                    {
-                        id: 'wine-region',
-                        name: 'Wine Region',
-                        subDestinations: [
-                            { id: 'stellenbosch', name: 'Stellenbosch' },
-                            { id: 'franschhoek', name: 'Franschhoek' },
-                            { id: 'somerset-west', name: 'Somerset West' },
-                            { id: 'paarl', name: 'Paarl' }
+                            { id: 'atlantic seabord', name: 'Atlantic Seabord' }
                         ]
                     },
                     {
@@ -973,11 +966,43 @@
                 ]
             },
             {
+                id: 'stellenbosch-wineregion',
+                name: 'Stellenbosch Wineregion',
+                subDestinations: [
+                    {
+                        id: 'wine-region',
+                        name: 'Wine Region',
+                        subDestinations: [
+                            { id: 'stellenbosch', name: 'Stellenbosch' },
+                            { id: 'franschhoek', name: 'Franschhoek' },
+                            { id: 'somerset-west', name: 'Somerset West' },
+                            { id: 'paarl', name: 'Paarl' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'n2-route62',
+                name: 'N2 & Route 62',
+                subDestinations: [
+                    { id: 'robertson-montagu', name: 'Robertson/ Montagu' },
+                    { id: 'swellendam-heidelberg', name: 'Swellendam/ Heidelberg' }
+                ]
+            },
+            {
+                id: 'oudtshoorn',
+                name: 'Oudtshoorn',
+                subDestinations: [
+                    { id: 'oudtshoorn', name: 'Oudtshoorn' }
+                ]
+            },
+            {
                 id: 'whale-coast',
                 name: 'Whale Coast',
                 subDestinations: [
                     { id: 'hermanus', name: 'Hermanus' },
-                    { id: 'arabella', name: 'Arabella Resort' }
+                    { id: 'gansbaai', name: 'Gansbaai' },
+                    { id: 'overberg/ agulhas', name: 'Overberg/ Agulhas' }
                 ]
             },
             {
@@ -987,7 +1012,7 @@
                     { id: 'knysna', name: 'Knysna' },
                     { id: 'plettenberg', name: 'Plettenberg Bay' },
                     { id: 'george', name: 'George' },
-                    { id: 'mossel-bay', name: 'Mossel Bay' },
+                    { id: 'st. francis-bay', name: 'St. Francis Bay' },
                     {
                         id: 'gr-golfresort',
                         name: 'Golfresort',
@@ -1005,6 +1030,16 @@
                             { id: 'botlierskop', name: 'Botlierskop Game Reserve' }
                         ]
                     }
+                ]
+            },
+            {
+                id: 'north',
+                name: 'North',
+                subDestinations: [
+                    { id: 'north-west', name: 'North West' },
+                    { id: 'mpumalanga', name: 'Mpumalanga' },
+                    { id: 'limpopo', name: 'Limpopo' },
+                    { id: 'dullstroom', name: 'Dullstroom' }
                 ]
             },
             {
@@ -1034,7 +1069,7 @@
                 subDestinations: [
                     { id: 'durban', name: 'Durban/Ballito/Umhlanga' },
                     { id: 'south-coast', name: 'South Coast' },
-                    { id: 'st-lucia', name: 'ST Lucia Wetlands' },
+                    { id: 'north coast', name: 'North Coast' },
                     {
                         id: 'kzn-safari',
                         name: 'Safari',
@@ -1120,6 +1155,72 @@
                     { id: 'zimbali', name: 'Zimbali' }
                 ]
             }
+        ];
+
+        // Hotel data structure
+        const hotelsData = [
+          // City Center
+          { id: 'cape-grace', name: 'Cape Grace', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'the-silo', name: 'The Silo', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'belmond-mount-nelson', name: 'Belmond Mount Nelson', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'one-only-cape-town', name: 'One & Only Cape Town', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'atzaro', name: 'Atzaro', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'cape-cadogan', name: 'Cape Cadogan', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'more-quarters', name: 'More Quarters', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'dock-house', name: 'Dock House', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'welgelegen-house', name: 'Welgelegen House', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'queen-victoria', name: 'Queen Victoria', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'radisson-waterfront', name: 'Radisson Waterfront', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'labotessa', name: 'Labotessa', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'noah-house', name: 'Noah House', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'kaap-mooi', name: 'Kaap Mooi', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'the-winchester', name: 'The Winchester', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'radisson-red', name: 'Radisson Red', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'portswood', name: 'Portswood', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'commodore', name: 'Commodore', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'victoria-alfred', name: 'Victoria & Alfred', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'derwent-house', name: 'Derwent House', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: '2in1-kensington', name: '2in1 Kensington', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'kensington-place', name: 'Kensington Place', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'four-rosmead', name: 'Four Rosmead', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'cape-riviera', name: 'Cape Riviera', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'three-boutique-hotel', name: 'Three Boutique Hotel', regionId: 'cape-town', subRegionId: 'city center' },
+          { id: 'breakwater-lodge', name: 'Breakwater Lodge', regionId: 'cape-town', subRegionId: 'city center' },
+          // Atlantic Seaboard
+          { id: '12-apostles', name: '12 Apostles', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'compass-house', name: 'Compass House', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'pod-boutique-hotel', name: 'POD Boutique Hotel', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: '21-nettleton', name: '21 Nettleton', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'ellerman-house', name: 'Ellerman House', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'azamare', name: 'Azamare', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'clarendon-bantry-bay', name: 'Clarendon Bantry Bay', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'sea-five-boutique-hotel', name: 'Sea Five Boutique Hotel', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'lions-eye', name: 'Lions Eye', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'the-bay', name: 'The Bay', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'the-marly', name: 'The Marly', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'blue-views-sc', name: 'Blue Views (SC)', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'south-beach', name: 'South Beach', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'walden-suites', name: 'Walden Suites', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'ocean-view-house', name: 'Ocean View House', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'blackheath-lodge', name: 'Blackheath Lodge', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'o-on-kloof', name: 'O on Kloof', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'otwo-hotel', name: "O'Two Hotel", regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'diamond-house', name: 'Diamond House', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'romney-park', name: 'Romney Park', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'cape-rose-cottage', name: 'Cape Rose Cottage', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'president-hotel', name: 'President Hotel', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          { id: 'royal-boutique', name: 'Royal Boutique', regionId: 'cape-town', subRegionId: 'atlantic seabord' },
+          // Constantia
+          { id: 'steenberg-hotel', name: 'Steenberg Hotel', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'villa-coloniale', name: 'Villa Coloniale', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'cellars-hohenhort', name: 'Cellars Hohenhort', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'villa-lions-view', name: 'Villa Lions View', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'glen-avon', name: 'Glen Avon', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'andros-boutique-hotel', name: 'Andros Boutique Hotel', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'the-alphen', name: 'The Alphen', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'last-word-constantia', name: 'Last Word Constantia', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'vineyard-hotel', name: 'Vineyard Hotel', regionId: 'cape-town', subRegionId: 'constantia' },
+          { id: 'white-lodge', name: 'White Lodge', regionId: 'cape-town', subRegionId: 'constantia' }
         ];
 
         // Generate destination selection UI
@@ -1280,6 +1381,15 @@
                         }
                     }
                     updateSelectedDestinations();
+                    // Remove hotels if region/subregion is unchecked
+                    if (!this.checked) {
+                        const id = this.dataset.id;
+                        const before = selectedHotels.length;
+                        selectedHotels = selectedHotels.filter(hotel => hotel.regionId !== id && hotel.subRegionId !== id);
+                        if (selectedHotels.length !== before) {
+                            updateSelectedDestinations();
+                        }
+                    }
                 });
             });
             
@@ -1338,15 +1448,22 @@
             return selected;
         }
 
+        // Add getSelectedHotels
+        let selectedHotels = [];
+        function getSelectedHotels() {
+            return selectedHotels.slice();
+        }
+
         // Update the selected destinations summary
         function updateSelectedDestinations() {
             const selectedList = document.getElementById('selectedDestinationsList');
             const summaryContainer = document.getElementById('selectedDestinationsSummary');
             const selected = getSelectedDestinations();
+            const hotels = getSelectedHotels();
             
             selectedList.innerHTML = '';
             
-            if (selected.length > 0) {
+            if (selected.length > 0 || hotels.length > 0) {
                 summaryContainer.style.display = 'block';
                 
                 selected.forEach(item => {
@@ -1355,6 +1472,16 @@
                     listItem.innerHTML = `
                         ${item.name}
                         <span class="selected-destination-remove" data-id="${item.id}">✕</span>
+                    `;
+                    selectedList.appendChild(listItem);
+                });
+                
+                hotels.forEach(hotel => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'selected-destination-item';
+                    listItem.innerHTML = `
+                        🏨 ${hotel.name}
+                        <span class="selected-hotel-remove" data-id="${hotel.id}">✕</span>
                     `;
                     selectedList.appendChild(listItem);
                 });
@@ -1368,6 +1495,14 @@
                             checkbox.checked = false;
                             updateSelectedDestinations();
                         }
+                    });
+                });
+                // Handle remove hotel buttons
+                document.querySelectorAll('.selected-hotel-remove').forEach(removeBtn => {
+                    removeBtn.addEventListener('click', function() {
+                        const hotelId = this.dataset.id;
+                        selectedHotels = selectedHotels.filter(h => h.id !== hotelId);
+                        updateSelectedDestinations();
                     });
                 });
             } else {
@@ -1413,100 +1548,79 @@
         function setupDestinationSearch(allDestinations) {
             const searchInput = document.getElementById('destinationSearch');
             const suggestionsContainer = document.getElementById('destinationSuggestions');
-            
-            // Function to filter destinations based on search query
-            function filterDestinations(query) {
-                if (!query) return [];
-                
+
+            // Function to filter destinations and hotels based on search query
+            function filterSuggestions(query) {
+                if (!query) return { destinations: [], hotels: [] };
                 query = query.toLowerCase();
-                const matches = allDestinations.filter(dest => 
-                    dest.name.toLowerCase().includes(query));
-                
-                // Sort results - exact matches first, then by name length
-                matches.sort((a, b) => {
-                    const aNameLower = a.name.toLowerCase();
-                    const bNameLower = b.name.toLowerCase();
-                    
-                    // Exact matches first
-                    if (aNameLower === query && bNameLower !== query) return -1;
-                    if (bNameLower === query && aNameLower !== query) return 1;
-                    
-                    // Then by name length (shorter first)
-                    return a.name.length - b.name.length;
-                });
-                
-                // Limit to first 10 results
-                return matches.slice(0, 10);
+                const destMatches = allDestinations.filter(dest => dest.name.toLowerCase().includes(query));
+                const hotelMatches = hotelsData.filter(hotel => hotel.name.toLowerCase().includes(query));
+                return { destinations: destMatches.slice(0, 10), hotels: hotelMatches.slice(0, 10) };
             }
-            
+
             // Function to show suggestions
             function showSuggestions(matches, query) {
                 suggestionsContainer.innerHTML = '';
-                
-                if (matches.length > 0) {
-                    matches.forEach(match => {
+                let hasSuggestions = false;
+                // Destinations
+                if (matches.destinations.length > 0) {
+                    matches.destinations.forEach(match => {
                         const item = document.createElement('div');
                         item.className = 'destination-suggestion-item';
                         item.dataset.id = match.id;
                         item.dataset.name = match.name;
-                        
                         let displayName = match.name;
                         if (match.pathString) {
                             item.innerHTML = `${displayName} <span class="destination-suggestion-path">${match.pathString}</span>`;
                         } else {
                             item.textContent = displayName;
                         }
-                        
-                        // Click handler to select this suggestion
                         item.addEventListener('click', () => {
                             selectDestination(match);
                             searchInput.value = '';
                             suggestionsContainer.style.display = 'none';
                         });
-                        
                         suggestionsContainer.appendChild(item);
+                        hasSuggestions = true;
                     });
-                    
-                    // Add "Add custom" option if query doesn't match exactly with any destination
-                    const exactMatch = matches.some(match => 
-                        match.name.toLowerCase() === query.toLowerCase());
-                    
-                    if (!exactMatch && query.trim().length > 0) {
-                        const addCustom = document.createElement('div');
-                        addCustom.className = 'destination-suggestion-item destination-add-custom';
-                        addCustom.innerHTML = `Add "<strong>${query}</strong>" as a custom destination`;
-                        
-                        // Click handler to add custom destination
-                        addCustom.addEventListener('click', () => {
-                            addCustomDestination(query);
+                }
+                // Hotels (only show if user is typing)
+                if (matches.hotels.length > 0 && query.trim().length > 0) {
+                    matches.hotels.forEach(hotel => {
+                        const item = document.createElement('div');
+                        item.className = 'destination-suggestion-item';
+                        item.dataset.id = hotel.id;
+                        item.dataset.name = hotel.name;
+                        item.innerHTML = `<span style='color:#1976D2;'>🏨 ${hotel.name}</span> <span class="destination-suggestion-path">Hotel</span>`;
+                        item.addEventListener('click', () => {
+                            selectHotel(hotel);
                             searchInput.value = '';
                             suggestionsContainer.style.display = 'none';
                         });
-                        
-                        suggestionsContainer.appendChild(addCustom);
-                    }
-                    
-                    suggestionsContainer.style.display = 'block';
-                } else if (query.trim().length > 0) {
-                    // If no matches but we have a query, show add custom option
+                        suggestionsContainer.appendChild(item);
+                        hasSuggestions = true;
+                    });
+                }
+                // Add custom destination if no exact match
+                const allNames = [
+                    ...matches.destinations.map(d => d.name.toLowerCase()),
+                    ...matches.hotels.map(h => h.name.toLowerCase())
+                ];
+                if (!allNames.includes(query.toLowerCase()) && query.trim().length > 0) {
                     const addCustom = document.createElement('div');
                     addCustom.className = 'destination-suggestion-item destination-add-custom';
                     addCustom.innerHTML = `Add "<strong>${query}</strong>" as a custom destination`;
-                    
-                    // Click handler to add custom destination
                     addCustom.addEventListener('click', () => {
                         addCustomDestination(query);
                         searchInput.value = '';
                         suggestionsContainer.style.display = 'none';
                     });
-                    
                     suggestionsContainer.appendChild(addCustom);
-                    suggestionsContainer.style.display = 'block';
-                } else {
-                    suggestionsContainer.style.display = 'none';
+                    hasSuggestions = true;
                 }
+                suggestionsContainer.style.display = hasSuggestions ? 'block' : 'none';
             }
-            
+
             // Function to select a destination from suggestions
             function selectDestination(destination) {
                 // Check if it already exists in selections
@@ -1547,6 +1661,37 @@
                 
                 updateSelectedDestinations();
             }
+
+            // Function to select a hotel from suggestions
+            function selectHotel(hotel) {
+                // Check if already selected
+                if (selectedHotels.some(h => h.id === hotel.id)) return;
+                // Auto-select region and subregion checkboxes
+                if (hotel.regionId) {
+                    const regionCheckbox = document.getElementById(`dest-${hotel.regionId}`);
+                    if (regionCheckbox && !regionCheckbox.checked) {
+                        regionCheckbox.checked = true;
+                        regionCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        // UX: highlight and scroll
+                        regionCheckbox.parentElement.classList.add('highlight');
+                        regionCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => regionCheckbox.parentElement.classList.remove('highlight'), 1200);
+                    }
+                }
+                if (hotel.subRegionId) {
+                    const subRegionCheckbox = document.getElementById(`dest-${hotel.subRegionId}`);
+                    if (subRegionCheckbox && !subRegionCheckbox.checked) {
+                        subRegionCheckbox.checked = true;
+                        subRegionCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        // UX: highlight and scroll
+                        subRegionCheckbox.parentElement.classList.add('highlight');
+                        subRegionCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => subRegionCheckbox.parentElement.classList.remove('highlight'), 1200);
+                    }
+                }
+                selectedHotels.push({ ...hotel });
+                updateSelectedDestinations();
+            }
             
             // Function to add a custom destination
             function addCustomDestination(name) {
@@ -1585,13 +1730,13 @@
             // Event listeners for search functionality
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.trim();
-                const matches = filterDestinations(query);
+                const matches = filterSuggestions(query);
                 showSuggestions(matches, query);
             });
             
             searchInput.addEventListener('focus', () => {
                 if (searchInput.value.trim().length > 0) {
-                    const matches = filterDestinations(searchInput.value.trim());
+                    const matches = filterSuggestions(searchInput.value.trim());
                     showSuggestions(matches, searchInput.value.trim());
                 }
             });
