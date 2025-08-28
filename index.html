@@ -891,6 +891,7 @@
                 const accommodationType = document.querySelector('input[name="accommodationType"]:checked');
                 
                 const formData = {
+                    clientName: document.getElementById('clientName').value,
                     numTravellers: document.getElementById('numTravellers').value,
                     travelMonths: selectedMonths,
                     specificDate: document.getElementById('specificDate').value,
