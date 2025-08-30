@@ -671,31 +671,34 @@
                     </div>
                 </div>
                 
-                <!-- Pre-defined routes section (hidden by default) -->
-                <div class="predefined-routes-section" id="predefinedRoutesSection" style="display: none;">
-                    <div class="question-title" style="margin-top: 20px; margin-bottom: 15px;">Available Pre-defined Routes:</div>
-                    <div class="route-list">
-                        <div class="route-item">
-                            <input type="radio" id="route1" name="selectedRoute" value="route1">
-                            <label for="route1">Route 1: Cape Town → Stellenbosch → Garden Route</label>
-                        </div>
-                        <div class="route-item">
-                            <input type="radio" id="route2" name="selectedRoute" value="route2">
-                            <label for="route2">Route 2: Kruger Safari → Garden Route → Cape Town</label>
-                        </div>
-                        <div class="route-item">
-                            <input type="radio" id="route3" name="selectedRoute" value="route3">
-                            <label for="route3">Route 3: Wine Region → Whale Coast → Garden Route</label>
-                        </div>
-                        <div class="route-item">
-                            <input type="radio" id="route4" name="selectedRoute" value="route4">
-                            <label for="route4">Route 4: Eastern Cape → Kwazulu-Natal → North</label>
-                        </div>
+
+            </div>
+
+            <!-- Question 5A: Which pre-defined route would you like? (Pre-defined Routes Path) -->
+            <div class="form-group" id="predefinedRouteQuestion" style="display: none;">
+                <div class="question-title">5) Which pre-defined route would you like?</div>
+                
+                <div class="route-list">
+                    <div class="route-item">
+                        <input type="radio" id="route1" name="selectedRoute" value="route1">
+                        <label for="route1">Route 1: Cape Town → Stellenbosch → Garden Route</label>
+                    </div>
+                    <div class="route-item">
+                        <input type="radio" id="route2" name="selectedRoute" value="route2">
+                        <label for="route2">Route 2: Kruger Safari → Garden Route → Cape Town</label>
+                    </div>
+                    <div class="route-item">
+                        <input type="radio" id="route3" name="selectedRoute" value="route3">
+                        <label for="route3">Route 3: Wine Region → Whale Coast → Garden Route</label>
+                    </div>
+                    <div class="route-item">
+                        <input type="radio" id="route4" name="selectedRoute" value="route4">
+                        <label for="route4">Route 4: Eastern Cape → Kwazulu-Natal → North</label>
                     </div>
                 </div>
             </div>
 
-            <!-- Conditional Questions Container -->
+            <!-- Conditional Questions Container (Trip Design Path) -->
             <div id="conditionalQuestionsContainer" style="display: none;">
                 <!-- Question 5: How many Nights? -->
                 <div class="form-group">
@@ -732,9 +735,9 @@
                 </div>
             </div>
 
-            <!-- Question 5: Is this a golf trip? -->
+            <!-- Question 6: Is this a golf trip? -->
             <div class="form-group">
-                <div class="question-title">5) Is this a golf trip?</div>
+                <div class="question-title">6) Is this a golf trip?</div>
                 
                 <div class="golf-grid">
                     <div class="golf-option">
@@ -755,9 +758,9 @@
                 </div>
             </div>
 
-            <!-- Question 6: Where would you like to go? -->
+            <!-- Question 7: Where would you like to go? -->
             <div class="form-group">
-                <div class="question-title">6) Where would you like to go?</div>
+                <div class="question-title">7) Where would you like to go?</div>
                 <div class="destination-container">
                     <div class="destination-search-container">
                         <input type="text" class="destination-search-input" id="destinationSearch" placeholder="Type to search destinations...">
@@ -772,9 +775,9 @@
             <!-- General Section with header -->
             <div class="section-title">General</div>
             
-            <!-- Question 7: What level of travel? -->
+            <!-- Question 8: What level of travel? -->
             <div class="form-group">
-                <div class="question-title">7) What level of travel?</div>
+                <div class="question-title">8) What level of travel?</div>
                 <div class="travel-level-grid">
                     <div class="travel-level-option">
                         <input type="radio" id="smart" name="travelLevel" value="smart">
@@ -800,9 +803,9 @@
                 </div>
             </div>
 
-            <!-- Question 8: Accommodation type -->
+            <!-- Question 9: Accommodation type -->
             <div class="form-group">
-                <div class="question-title">8) Accommodation type</div>
+                <div class="question-title">9) Accommodation type</div>
                 <div class="accommodation-type-grid">
                     <div class="accommodation-option">
                         <input type="radio" id="bnb" name="accommodationType" value="bnb">
@@ -838,7 +841,7 @@
             </div>
             </div>
 
-            <button type="submit" class="submit-btn" id="submitBtn">Continue</button>
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>Continue</button>
         </form>
 
         <!-- Selected Destinations Summary -->
@@ -1017,45 +1020,73 @@
                 // Collect accommodation type
                 const accommodationType = document.querySelector('input[name="accommodationType"]:checked');
                 
-                // Collect route preference
+                // Collect route preference (only for conditional logic, not for webhook)
                 const routePreference = document.querySelector('input[name="routePreference"]:checked');
                 const selectedRoute = document.querySelector('input[name="selectedRoute"]:checked');
                 
-                const formData = {
-                    clientName: document.getElementById('clientName').value,
-                    numTravellers: document.getElementById('numTravellers').value,
-                    travelMonths: selectedMonths,
-                    specificDate: document.getElementById('specificDate').value,
-                    routePreference: routePreference ? {
-                        value: routePreference.value,
-                        text: routePreference.nextElementSibling.textContent
-                    } : null,
-                    selectedRoute: selectedRoute ? {
-                        value: selectedRoute.value,
-                        text: selectedRoute.nextElementSibling.textContent
-                    } : null,
-                    nightsPreference: nightsPreference,
-                    golfInfo: golfInfo,
-                    destinations: selectedDestinations,
-                    hotels: selectedHotels,
-                    travelLevel: travelLevel ? {
-                        value: travelLevel.value,
-                        text: travelLevel.nextElementSibling.querySelector('.option-title').textContent
-                    } : null,
-                    accommodationType: accommodationType ? {
-                        value: accommodationType.value,
-                        text: accommodationType.nextElementSibling.textContent
-                    } : null,
-                    generalNotes: document.getElementById('generalNotes').value,
-                    timestamp: new Date().toISOString()
-                };
+                // Determine which webhook to use and what data to send
+                let webhookUrl, formData;
                 
-                console.log('Form Data:', formData);
+                if (routePreference && routePreference.value === 'predefined') {
+                    // Pre-defined Routes selected - use new webhook
+                    webhookUrl = 'https://n8n-utni.onrender.com/webhook/7a52ca95-0d6c-4b45-85f7-97e5d06531ec';
+                    
+                    // Validate that a specific route is selected (Q5)
+                    if (!selectedRoute) {
+                        alert('Please select a specific route from the available options (Question 5).');
+                        return;
+                    }
+                    
+                    // Send basic info + selected route (Q5 data will be sent to webhook)
+                    formData = {
+                        clientName: document.getElementById('clientName').value,
+                        numTravellers: document.getElementById('numTravellers').value,
+                        travelMonths: selectedMonths,
+                        specificDate: document.getElementById('specificDate').value,
+                        selectedRoute: {
+                            value: selectedRoute.value,
+                            text: selectedRoute.nextElementSibling.textContent
+                        },
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    console.log('Pre-defined Route Form Data (Q5 included):', formData);
+                    
+                } else if (routePreference && routePreference.value === 'trip-design') {
+                    // Trip Design selected - use existing webhook
+                    webhookUrl = 'https://n8n-utni.onrender.com/webhook/a50bcb3f-8b8a-4628-9e35-75c68a9f50b9';
+                    
+                    // Send full trip planning data (excluding route preference question)
+                    formData = {
+                        clientName: document.getElementById('clientName').value,
+                        numTravellers: document.getElementById('numTravellers').value,
+                        travelMonths: selectedMonths,
+                        specificDate: document.getElementById('specificDate').value,
+                        nightsPreference: nightsPreference,
+                        golfInfo: golfInfo,
+                        destinations: selectedDestinations,
+                        hotels: selectedHotels,
+                        travelLevel: travelLevel ? {
+                            value: travelLevel.value,
+                            text: travelLevel.nextElementSibling.querySelector('.option-title').textContent
+                        } : null,
+                        accommodationType: accommodationType ? {
+                            value: accommodationType.value,
+                            text: accommodationType.nextElementSibling.textContent
+                        } : null,
+                        generalNotes: document.getElementById('generalNotes').value,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    console.log('Trip Design Form Data:', formData);
+                    
+                } else {
+                    // No route preference selected - show error
+                    alert('Please select a route preference before submitting the form.');
+                    return;
+                }
                 
-                // n8n webhook URL
-                const webhookUrl = 'https://n8n-utni.onrender.com/webhook/a50bcb3f-8b8a-4628-9e35-75c68a9f50b9';
-                
-                // Submit data to n8n webhook
+                // Submit data to appropriate webhook
                 fetch(webhookUrl, {
                     method: 'POST',
                     headers: {
@@ -1071,7 +1102,11 @@
                 })
                 .then(data => {
                     console.log('Success:', data);
-                    alert('Form submitted successfully!');
+                    if (routePreference.value === 'predefined') {
+                        alert('Pre-defined route selected successfully! We will contact you with your chosen route details.');
+                    } else {
+                        alert('Trip design form submitted successfully! We will contact you to plan your custom trip.');
+                    }
                     // Here you could redirect to next step or show success message
                 })
                 .catch(error => {
@@ -2138,21 +2173,36 @@
         // Setup route preference logic
         function setupRoutePreference() {
             const routeRadios = document.querySelectorAll('input[name="routePreference"]');
-            const predefinedRoutesSection = document.getElementById('predefinedRoutesSection');
+            const predefinedRouteQuestion = document.getElementById('predefinedRouteQuestion');
             const conditionalQuestionsContainer = document.getElementById('conditionalQuestionsContainer');
+            const submitBtn = document.getElementById('submitBtn');
             
             routeRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     if (this.value === 'predefined') {
-                        // Show pre-defined routes section
-                        predefinedRoutesSection.style.display = 'block';
+                        // Show pre-defined route question (Q5)
+                        predefinedRouteQuestion.style.display = 'block';
                         // Hide conditional questions
                         conditionalQuestionsContainer.style.display = 'none';
+                        // Disable submit until route is selected
+                        submitBtn.disabled = true;
                     } else if (this.value === 'trip-design') {
-                        // Hide pre-defined routes section
-                        predefinedRoutesSection.style.display = 'none';
-                        // Show conditional questions
+                        // Hide pre-defined route question
+                        predefinedRouteQuestion.style.display = 'none';
+                        // Show conditional questions (starting from Q5)
                         conditionalQuestionsContainer.style.display = 'block';
+                        // Enable submit for trip design (can submit immediately)
+                        submitBtn.disabled = false;
+                    }
+                });
+            });
+            
+            // Handle route selection for pre-defined routes
+            const routeRadios2 = document.querySelectorAll('input[name="selectedRoute"]');
+            routeRadios2.forEach(routeRadio => {
+                routeRadio.addEventListener('change', function() {
+                    if (routeRadios[0].checked) { // If pre-defined routes is selected
+                        submitBtn.disabled = false; // Enable submit when route is selected
                     }
                 });
             });
