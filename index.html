@@ -541,6 +541,91 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
+        
+        /* Route preference styles */
+        .route-preference-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .route-option {
+            position: relative;
+        }
+        .route-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+        .route-option label {
+            display: block;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 100%;
+            box-sizing: border-box;
+            font-weight: 500;
+            font-size: 16px;
+        }
+        .route-option input[type="radio"]:checked + label {
+            background-color: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+        .route-option label:hover {
+            background-color: #e9ecef;
+            border-color: #FF9800;
+        }
+        .route-option input[type="radio"]:checked + label:hover {
+            background-color: #F57C00;
+        }
+        
+        /* Pre-defined routes section styles */
+        .predefined-routes-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff3e0;
+            border-radius: 6px;
+            border-left: 4px solid #FF9800;
+        }
+        .route-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+        .route-item {
+            position: relative;
+        }
+        .route-item input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+        .route-item label {
+            display: block;
+            padding: 12px 15px;
+            background-color: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .route-item input[type="radio"]:checked + label {
+            background-color: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+        .route-item label:hover {
+            background-color: #f5f5f5;
+            border-color: #FF9800;
+        }
+        .route-item input[type="radio"]:checked + label:hover {
+            background-color: #F57C00;
+        }
     </style>
 </head>
 <body>
@@ -571,9 +656,50 @@
                 </div>
             </div>
 
-            <!-- Question 4: How many Nights? -->
+            <!-- Question 4: What kind of routes do you prefer? -->
             <div class="form-group">
-                <div class="question-title">4) How many Nights?</div>
+                <div class="question-title">4) What kind of routes do you prefer?</div>
+                
+                <div class="route-preference-grid">
+                    <div class="route-option">
+                        <input type="radio" id="predefinedRoutes" name="routePreference" value="predefined">
+                        <label for="predefinedRoutes">Pre-defined Routes</label>
+                    </div>
+                    <div class="route-option">
+                        <input type="radio" id="tripDesign" name="routePreference" value="trip-design">
+                        <label for="tripDesign">Trip Design</label>
+                    </div>
+                </div>
+                
+                <!-- Pre-defined routes section (hidden by default) -->
+                <div class="predefined-routes-section" id="predefinedRoutesSection" style="display: none;">
+                    <div class="question-title" style="margin-top: 20px; margin-bottom: 15px;">Available Pre-defined Routes:</div>
+                    <div class="route-list">
+                        <div class="route-item">
+                            <input type="radio" id="route1" name="selectedRoute" value="route1">
+                            <label for="route1">Route 1: Cape Town → Stellenbosch → Garden Route</label>
+                        </div>
+                        <div class="route-item">
+                            <input type="radio" id="route2" name="selectedRoute" value="route2">
+                            <label for="route2">Route 2: Kruger Safari → Garden Route → Cape Town</label>
+                        </div>
+                        <div class="route-item">
+                            <input type="radio" id="route3" name="selectedRoute" value="route3">
+                            <label for="route3">Route 3: Wine Region → Whale Coast → Garden Route</label>
+                        </div>
+                        <div class="route-item">
+                            <input type="radio" id="route4" name="selectedRoute" value="route4">
+                            <label for="route4">Route 4: Eastern Cape → Kwazulu-Natal → North</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conditional Questions Container -->
+            <div id="conditionalQuestionsContainer" style="display: none;">
+                <!-- Question 5: How many Nights? -->
+                <div class="form-group">
+                    <div class="question-title">5) How many Nights?</div>
                 
                 <div class="nights-grid">
                     <div class="night-block">
@@ -709,6 +835,7 @@
             <div class="form-group" style="margin-top: 30px;">
                 <label for="generalNotes" class="question-title" style="font-size: 16px; font-weight: 500;">General Notes</label>
                 <textarea id="generalNotes" name="generalNotes" rows="4" style="width: 96%; max-width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 15px; resize: vertical;"></textarea>
+            </div>
             </div>
 
             <button type="submit" class="submit-btn" id="submitBtn">Continue</button>
@@ -890,11 +1017,23 @@
                 // Collect accommodation type
                 const accommodationType = document.querySelector('input[name="accommodationType"]:checked');
                 
+                // Collect route preference
+                const routePreference = document.querySelector('input[name="routePreference"]:checked');
+                const selectedRoute = document.querySelector('input[name="selectedRoute"]:checked');
+                
                 const formData = {
                     clientName: document.getElementById('clientName').value,
                     numTravellers: document.getElementById('numTravellers').value,
                     travelMonths: selectedMonths,
                     specificDate: document.getElementById('specificDate').value,
+                    routePreference: routePreference ? {
+                        value: routePreference.value,
+                        text: routePreference.nextElementSibling.textContent
+                    } : null,
+                    selectedRoute: selectedRoute ? {
+                        value: selectedRoute.value,
+                        text: selectedRoute.nextElementSibling.textContent
+                    } : null,
                     nightsPreference: nightsPreference,
                     golfInfo: golfInfo,
                     destinations: selectedDestinations,
@@ -1996,12 +2135,36 @@
             });
         }
         
+        // Setup route preference logic
+        function setupRoutePreference() {
+            const routeRadios = document.querySelectorAll('input[name="routePreference"]');
+            const predefinedRoutesSection = document.getElementById('predefinedRoutesSection');
+            const conditionalQuestionsContainer = document.getElementById('conditionalQuestionsContainer');
+            
+            routeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'predefined') {
+                        // Show pre-defined routes section
+                        predefinedRoutesSection.style.display = 'block';
+                        // Hide conditional questions
+                        conditionalQuestionsContainer.style.display = 'none';
+                    } else if (this.value === 'trip-design') {
+                        // Hide pre-defined routes section
+                        predefinedRoutesSection.style.display = 'none';
+                        // Show conditional questions
+                        conditionalQuestionsContainer.style.display = 'block';
+                    }
+                });
+            });
+        }
+        
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
             generateMonths();
             setupExactNights();
             setupGolfQuestion();
             setupDateInput();
+            setupRoutePreference();
             setupDestinations();
             setupFormSubmission();
             
