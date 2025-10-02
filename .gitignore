@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+.vercel/
+.turbo/
+.swc/
+
+# Build outputs
+build/
+dist/
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Package managers
+.pnp.cjs
+.pnp.loader.mjs
+.pnp.data.json
+.pnp.data.mdb
+.pnpm-store/
+
+# Caches
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Cursor workspace
+.cursor/
+
+# Types from Next
+.next/types/
