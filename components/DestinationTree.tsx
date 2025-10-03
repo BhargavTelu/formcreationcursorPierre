@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import Image from 'next/image';
 import { supabase, type Destination, type Hotel } from '@/lib/supabase';
 
@@ -32,6 +32,10 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   // Active selection path from root → ... → current
   const [activePath, setActivePath] = useState<string[]>([]);
   const [query, setQuery] = useState('');
+  // Alignment offsets for each column based on selected item in previous column
+  const [columnOffsets, setColumnOffsets] = useState<number[]>([]);
+  const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const itemRefs = useRef<Record<number, Record<string, HTMLButtonElement | null>>>({});
 
   // Fetch data from Supabase
   useEffect(() => {
@@ -184,6 +188,72 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     onChange(value.filter(v => v.id !== id));
   };
 
+  // Measure and align columns so that column[d] top aligns with selected item in column[d-1]
+  useLayoutEffect(() => {
+    const offsets: number[] = [];
+    for (let depth = 1; depth < columns.length; depth++) {
+      const parentDepth = depth - 1;
+      const parentId = activePath[parentDepth];
+      const parentBtn = parentId ? itemRefs.current[parentDepth]?.[parentId] : null;
+      const parentCol = columnRefs.current[parentDepth];
+      const thisCol = columnRefs.current[depth];
+      if (parentBtn && parentCol && thisCol) {
+        const parentRect = parentBtn.getBoundingClientRect();
+        const parentColRect = parentCol.getBoundingClientRect();
+        const offset = Math.max(0, parentRect.top - parentColRect.top);
+        offsets[depth] = offset;
+      } else {
+        offsets[depth] = 0;
+      }
+    }
+    setColumnOffsets(offsets);
+  }, [columns.length, activePath, query]);
+
+  // Keyboard navigation within columns
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, depth: number, node: DestinationTreeItem, itemsAtDepth: DestinationTreeItem[]) => {
+    const ids = itemsAtDepth.map((n) => n.id);
+    const idx = ids.indexOf(node.id);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIdx = Math.min(ids.length - 1, idx + 1);
+      const nextId = ids[nextIdx];
+      const nextRef = itemRefs.current[depth]?.[nextId];
+      nextRef?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIdx = Math.max(0, idx - 1);
+      const prevId = ids[prevIdx];
+      const prevRef = itemRefs.current[depth]?.[prevId];
+      prevRef?.focus();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      // open/select node and focus first child in next column
+      onClickNode(node, depth);
+      const nextDepth = depth + 1;
+      const nextItems = getChildren(node.id);
+      const firstChild = nextItems[0];
+      if (firstChild) {
+        // Wait for render
+        setTimeout(() => {
+          const childRef = itemRefs.current[nextDepth]?.[firstChild.id];
+          childRef?.focus();
+        }, 0);
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const parentId = parentMap[node.id] ?? null;
+      if (parentId) {
+        const parentDepth = Math.max(0, depth - 1);
+        const parentRef = itemRefs.current[parentDepth]?.[parentId];
+        parentRef?.focus();
+        setActivePath(activePath.slice(0, parentDepth + 1));
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClickNode(node, depth);
+    }
+  };
+
   // Flatten items for search: include both destinations and hotels with paths
   type FlatItem = { id: string; name: string; isHotel?: boolean; parent_id: string | null; pathIds: string[]; pathNames: string[] };
   const flatItems: FlatItem[] = useMemo(() => {
@@ -315,9 +385,14 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
       ) : null}
 
       {/* Horizontal columns: main regions → sub-regions → deeper levels */}
-      <div className="flex gap-4 overflow-x-auto">
+      <div className="flex gap-4 overflow-x-auto" role="tree" aria-multiselectable="true">
         {columns.map((items, depth) => (
-          <div key={depth} className="min-w-[260px] w-64 shrink-0">
+          <div
+            key={depth}
+            ref={(el) => (columnRefs.current[depth] = el)}
+            className="min-w-[260px] w-64 shrink-0 transition-all duration-200"
+            style={{ marginTop: columnOffsets[depth] || 0 }}
+          >
             <div className="text-sm font-semibold text-gray-700 mb-2">
               {depth === 0 ? 'Main Regions' : depth === 1 ? 'Sub-Regions' : 'More'}
             </div>
@@ -328,8 +403,17 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
                   <button
                     type="button"
                     key={node.id}
+                    ref={(el) => {
+                      if (!itemRefs.current[depth]) itemRefs.current[depth] = {};
+                      itemRefs.current[depth][node.id] = el;
+                    }}
                     onClick={() => onClickNode(node, depth)}
+                    onKeyDown={(e) => handleKeyDown(e, depth, node, items)}
                     className={`w-full text-left rounded-lg border p-3 transition-all duration-200 ${selected ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
+                    role="treeitem"
+                    aria-level={depth + 1}
+                    aria-selected={value.some(v => v.id === node.id)}
+                    aria-expanded={node.children.length > 0 ? activePath[depth] === node.id : undefined}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative w-14 h-14 overflow-hidden rounded-md bg-gray-100">
