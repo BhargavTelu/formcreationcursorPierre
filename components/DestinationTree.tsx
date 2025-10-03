@@ -409,29 +409,30 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
                     }}
                     onClick={() => onClickNode(node, depth)}
                     onKeyDown={(e) => handleKeyDown(e, depth, node, items)}
-                    className={`w-full text-left rounded-lg border p-3 transition-all duration-200 ${selected ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
+                    className={`group block rounded-lg border transition-all duration-200 w-[200px] h-[200px] overflow-hidden ${selected ? 'border-emerald-500 shadow-sm ring-1 ring-emerald-200' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'}`}
                     role="treeitem"
                     aria-level={depth + 1}
                     aria-selected={value.some(v => v.id === node.id)}
                     aria-expanded={node.children.length > 0 ? activePath[depth] === node.id : undefined}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-14 h-14 overflow-hidden rounded-md bg-gray-100">
-                        {typeof node.image_url === 'string' && node.image_url.trim() ? (
-                          <Image
-                            src={node.image_url}
-                            alt={node.name}
-                            fill
-                            sizes="(max-width: 640px) 56px, 56px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xl">{node.isHotel ? '🏨' : '📍'}</div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">{node.name}</div>
-                        {node.isHotel ? (<div className="text-xs text-blue-700">Hotel</div>) : null}
+                    {/* Make image fill 100% of the card area using Next.js Image with fill + object-cover.
+                       We keep the card size fixed and expand only the image to remove empty space. */}
+                    <div className="relative w-full h-full bg-gray-100">
+                      {typeof node.image_url === 'string' && node.image_url.trim() ? (
+                        <Image
+                          src={node.image_url}
+                          alt={`${node.name} image`}
+                          fill
+                          quality={85}
+                          sizes="(max-width: 768px) 80vw, 200px"
+                          className="object-cover"
+                          priority={depth === 0 && items.indexOf(node) === 0}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-3xl">{node.isHotel ? '🏨' : '📍'}</div>
+                      )}
+                      <div className={`absolute inset-x-0 bottom-0 px-2 py-1 ${selected ? 'bg-emerald-600/70' : 'bg-black/50'} transition-colors`}>
+                        <span className="text-xs font-medium text-white line-clamp-1">{node.name}</span>
                       </div>
                     </div>
                   </button>
