@@ -4,8 +4,9 @@ import { TextInput } from '@/components/ui/TextInput';
 import { RadioGroup } from '@/components/ui/RadioGroup';
 import { CheckboxGroup } from '@/components/ui/CheckboxGroup';
 import { DatePicker } from '@/components/ui/DatePicker';
-import DestinationSelector from '@/components/DestinationSelector';
-import { destinationsData, hotelsData, predefinedRoutes } from '@/lib/data';
+import DestinationTree from '@/components/DestinationTree';
+import { predefinedRoutes } from '@/lib/data';
+import type { SelectedItem } from '@/components/DestinationTree';
 
 type NightRange = '1-week' | '10-nights' | '14-nights' | '21-nights';
 
@@ -33,8 +34,7 @@ export default function Page() {
   const [golfRounds, setGolfRounds] = useState<string>('');
 
   // Q7 Destinations + hotels
-  const [selectedDestinations, setSelectedDestinations] = useState<{ id: string; name: string; parent?: string | null }[]>([]);
-  const [selectedHotels, setSelectedHotels] = useState<typeof hotelsData>([]);
+  const [selectedDestinations, setSelectedDestinations] = useState<SelectedItem[]>([]);
 
   // General section
   const [travelLevel, setTravelLevel] = useState<'smart' | 'comfortable' | 'luxury' | ''>('');
@@ -91,7 +91,6 @@ export default function Page() {
           ? { isGolfTrip: false, rounds: null }
           : null,
       destinations: selectedDestinations,
-      hotels: selectedHotels,
       travelLevel: travelLevel ? { value: travelLevel, text: travelLevelTitle(travelLevel) } : null,
       accommodationType: accommodationType ? { value: accommodationType, text: accommodationType } : null,
       generalNotes,
@@ -281,13 +280,9 @@ export default function Page() {
               {/* Q7 Destination selector */}
               <div>
                 <div className="question-title">7) Where would you like to go?</div>
-                <DestinationSelector
-                  destinations={destinationsData}
-                  hotels={hotelsData}
+                <DestinationTree
                   value={selectedDestinations}
                   onChange={setSelectedDestinations}
-                  selectedHotels={selectedHotels}
-                  onHotelsChange={setSelectedHotels}
                 />
               </div>
 
