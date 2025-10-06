@@ -719,6 +719,36 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     return map;
   }, [treeData]);
 
+  // Collect all ancestor ids for a node (closest parent → root)
+  const getAncestorIds = useMemo(() => {
+    return (startId: string): string[] => {
+      const ids: string[] = [];
+      let cur: string | null = parentMap[startId] ?? null;
+      while (cur) {
+        ids.push(cur);
+        cur = parentMap[cur] ?? null;
+      }
+      return ids;
+    };
+  }, [parentMap]);
+
+  // Collect all descendant ids for a node (deep DFS)
+  const getDescendantIds = useMemo(() => {
+    return (startId: string): string[] => {
+      const root = nodeIndex[startId];
+      if (!root) return [];
+      const result: string[] = [];
+      const visit = (n: DestinationTreeItem) => {
+        n.children.forEach((child) => {
+          result.push(child.id);
+          visit(child);
+        });
+      };
+      visit(root);
+      return result;
+    };
+  }, [nodeIndex]);
+
   const getChildren = (nodeId: string | null) => {
     if (nodeId === null) return treeData;
     const n = nodeIndex[nodeId];
@@ -736,17 +766,41 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   }, [activePath, nodeIndex, treeData]);
 
   const onClickNode = (node: DestinationTreeItem, depth: number) => {
-    // Update active path at this depth
+    // Update expanded path at this depth (browse only; do not select here)
     const newPath = [...activePath.slice(0, depth), node.id];
     setActivePath(newPath);
-    // Selecting the node (no dropdowns)
-    if (!value.some(v => v.id === node.id)) {
-      onChange([...value, { id: node.id, name: node.name, image_url: node.image_url, isHotel: node.isHotel }]);
+  };
+
+  // Explicitly add item to selection (triggered by button/checkbox)
+  // Also add all ancestor nodes so hierarchy remains consistent.
+  const addSelected = (node: DestinationTreeItem) => {
+    const already = new Set(value.map(v => v.id));
+    const toAddIds = [node.id, ...getAncestorIds(node.id)];
+    const additions = toAddIds
+      .filter((id) => !already.has(id))
+      .map((id) => {
+        const n = nodeIndex[id];
+        return { id, name: n?.name ?? '', image_url: n?.image_url ?? '', isHotel: n?.isHotel } as SelectedItem;
+      });
+    if (additions.length > 0) {
+      onChange([...value, ...additions]);
     }
   };
 
+  // Toggle selection convenience helper
+  const toggleSelected = (node: DestinationTreeItem) => {
+    if (value.some(v => v.id === node.id)) {
+      removeSelected(node.id);
+    } else {
+      addSelected(node);
+    }
+  };
+
+  // Remove a node from selection and cascade to all of its descendants.
+  // Ancestors are intentionally retained unless explicitly removed.
   const removeSelected = (id: string) => {
-    onChange(value.filter(v => v.id !== id));
+    const toRemove = new Set<string>([id, ...getDescendantIds(id)]);
+    onChange(value.filter(v => !toRemove.has(v.id)));
   };
 
   // Measure and align columns so that column[d] top aligns with selected item in column[d-1]
@@ -1096,6 +1150,21 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
                     {/* Make image fill 100% of the card area using Next.js Image with fill + object-cover.
                        We keep the card size fixed and expand only the image to remove empty space. */}
                     <div className="relative w-full h-full bg-gray-100">
+                      {/* Explicit selection control in the card corner. Using stopPropagation so clicks don't expand. */}
+                      <div className="absolute top-2 right-2 z-10">
+                        <button
+                          type="button"
+                          aria-label={value.some(v => v.id === node.id) ? 'Remove from plan' : 'Add to plan'}
+                          aria-pressed={value.some(v => v.id === node.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelected(node);
+                          }}
+                          className={`${value.some(v => v.id === node.id) ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-white/90 text-gray-700 hover:bg-white'} border border-gray-200 rounded px-2 py-1 text-xs font-medium shadow-sm`}
+                        >
+                          {value.some(v => v.id === node.id) ? 'Added' : 'Add'}
+                        </button>
+                      </div>
                       {typeof node.image_url === 'string' && node.image_url.trim() ? (
                         <Image
                           src={node.image_url}
