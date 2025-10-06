@@ -587,6 +587,12 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   // Active selection path from root → ... → current
   const [activePath, setActivePath] = useState<string[]>([]);
   const [query, setQuery] = useState('');
+  // Track highlighted search results in tree
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
+  // Track if search dropdown is open
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // Reference to search container for positioning
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
   // Alignment offsets for each column based on selected item in previous column
   const [columnOffsets, setColumnOffsets] = useState<number[]>([]);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -1014,10 +1020,25 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   const searchMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [] as FlatItem[];
-    return flatItems
+    const matches = flatItems
       .filter((it) => it.name.toLowerCase().includes(q) || it.pathNames.join(' ').toLowerCase().includes(q))
       .slice(0, 20);
-  }, [query, flatItems]);
+    
+    // Debug logging
+    console.log('Search query:', q);
+    console.log('Search matches found:', matches.length);
+    console.log('Is search open:', isSearchOpen);
+    
+    // Update highlighted IDs when search results change
+    if (q) {
+      const ids = new Set(matches.map(m => m.id));
+      setHighlightedIds(ids);
+    } else {
+      setHighlightedIds(new Set());
+    }
+    
+    return matches;
+  }, [query, flatItems, isSearchOpen]);
 
   const onSelectFromSearch = (it: FlatItem) => {
     // Select target and all ancestors; open columns to target
@@ -1034,7 +1055,27 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     const newValue = [...value, ...toAdd];
     onChange(newValue);
     setQuery('');
+    setIsSearchOpen(false);
   };
+
+  // Handle clicks outside search dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Open search dropdown when query is not empty
+  useEffect(() => {
+    setIsSearchOpen(query.trim() !== '' && searchMatches.length > 0);
+  }, [query, searchMatches.length]);
 
   if (loading) {
     return (
@@ -1060,32 +1101,61 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   return (
     <div className="space-y-4">
       {/* Search */}
-      <div className="relative">
+      <div className="relative" ref={searchContainerRef}>
         <input
           className="input"
           placeholder="Search destinations or hotels..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const newQuery = e.target.value;
+            console.log('Input changed to:', newQuery);
+            setQuery(newQuery);
+            // Show dropdown immediately on input
+            if (newQuery.trim() !== '') {
+              console.log('Setting search open to true');
+              setIsSearchOpen(true);
+            } else {
+              console.log('Setting search open to false');
+              setIsSearchOpen(false);
+              setHighlightedIds(new Set());
+            }
+          }}
+          aria-expanded={isSearchOpen}
+          aria-autocomplete="list"
+          aria-controls={isSearchOpen ? "search-results-dropdown" : undefined}
         />
-        {query && searchMatches.length > 0 ? (
-          <div className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white shadow">
+        {/* Search results dropdown - positioned absolutely to avoid layout disruption */}
+        {isSearchOpen && (
+          <div 
+            id="search-results-dropdown"
+            className="absolute z-50 mt-1 w-full max-w-md rounded-md border border-gray-200 bg-white shadow-lg"
+            role="listbox"
+          >
             <div className="max-h-72 overflow-auto py-1 text-sm">
-              {searchMatches.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="block w-full px-3 py-2 text-left hover:bg-gray-50"
-                  onClick={() => onSelectFromSearch(m)}
-                >
-                  {m.isHotel ? '🏨' : '📍'} {m.name}
-                  {m.pathNames.length > 0 ? (
-                    <span className="ml-2 text-gray-500 text-xs">{m.pathNames.join(' > ')}</span>
-                  ) : null}
-                </button>
-              ))}
+              {searchMatches.length > 0 ? (
+                searchMatches.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="block w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none"
+                    onClick={() => onSelectFromSearch(m)}
+                    role="option"
+                    aria-selected="false"
+                  >
+                    {m.isHotel ? '🏨' : '📍'} {m.name}
+                    {m.pathNames.length > 0 ? (
+                      <span className="ml-2 text-gray-500 text-xs">{m.pathNames.join(' > ')}</span>
+                    ) : null}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-gray-500 text-sm">
+                  No destinations found for "{query}"
+                </div>
+              )}
             </div>
           </div>
-        ) : null}
+        )}
       </div>
 
       {value.length > 0 ? (
@@ -1131,6 +1201,7 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
             <div className="space-y-3">
               {items.map((node) => {
                 const selected = activePath[depth] === node.id;
+                const isHighlighted = highlightedIds.has(node.id);
                 return (
                   <button
                     type="button"
@@ -1141,11 +1212,15 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
                     }}
                     onClick={() => onClickNode(node, depth)}
                     onKeyDown={(e) => handleKeyDown(e, depth, node, items)}
-                    className={`group block rounded-lg border transition-all duration-200 w-[200px] h-[200px] overflow-hidden ${selected ? 'border-emerald-500 shadow-sm ring-1 ring-emerald-200' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'}`}
+                    className={`group block rounded-lg border transition-all duration-200 w-[200px] h-[200px] overflow-hidden 
+                      ${selected ? 'border-emerald-500 shadow-sm ring-1 ring-emerald-200' : 
+                        isHighlighted ? 'border-amber-400 shadow-sm ring-1 ring-amber-200' : 
+                        'border-gray-200 hover:border-gray-300 hover:shadow-md'}`}
                     role="treeitem"
                     aria-level={depth + 1}
                     aria-selected={value.some(v => v.id === node.id)}
                     aria-expanded={node.children.length > 0 ? activePath[depth] === node.id : undefined}
+                    aria-highlighted={isHighlighted || undefined}
                   >
                     {/* Make image fill 100% of the card area using Next.js Image with fill + object-cover.
                        We keep the card size fixed and expand only the image to remove empty space. */}
