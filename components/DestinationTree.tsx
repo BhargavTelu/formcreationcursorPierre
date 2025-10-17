@@ -1220,12 +1220,12 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
             ))}
           </svg>
         ) : null}
-        <div ref={scrollContainerRef} className="relative z-10 flex gap-4 overflow-x-auto" role="tree" aria-multiselectable="true">
+        <div ref={scrollContainerRef} className="relative z-10 flex gap-4 overflow-x-hidden flex-wrap" role="tree" aria-multiselectable="true">
           {columns.map((items, depth) => (
             <div
               key={depth}
               ref={(el) => (columnRefs.current[depth] = el)}
-              className="min-w-[260px] w-64 shrink-0 transition-all duration-200"
+              className="min-w-[260px] w-64 flex-shrink-0 transition-all duration-200"
               style={{ marginTop: columnOffsets[depth] || 0 }}
             >
             <div className="text-sm font-semibold text-gray-700 mb-2">
