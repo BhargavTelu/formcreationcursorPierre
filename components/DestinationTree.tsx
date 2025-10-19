@@ -635,6 +635,12 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
 
         setDestinations(destinationsData || []);
         setHotels(hotelsData || []);
+        
+        // Debug logging
+        console.log('Destinations loaded:', destinationsData?.length || 0);
+        console.log('Hotels loaded:', hotelsData?.length || 0);
+        console.log('Sample destination:', destinationsData?.[0]);
+        console.log('Sample hotel:', hotelsData?.[0]);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -671,14 +677,17 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
         id: hotel.id,
         name: hotel.name,
         image_url: hotel.image_url,
-        parent_id: hotel.subregion_id,
+        parent_id: hotel.destination_id,  // Use destination_id instead of subregion_id
         children: [],
         isHotel: true
       };
 
-      const parent = destinationMap.get(hotel.subregion_id);
+      const parent = destinationMap.get(hotel.destination_id);
       if (parent) {
         parent.children.push(hotelItem);
+        console.log(`Added hotel "${hotel.name}" to subregion "${parent.name}"`);
+      } else {
+        console.warn(`Could not find parent subregion for hotel "${hotel.name}" with destination_id: ${hotel.destination_id}`);
       }
     });
 
@@ -694,10 +703,24 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     });
 
     // Return root nodes (destinations with parent_id = null)
-    return destinations
+    const rootNodes = destinations
       .filter(dest => dest.parent_id === null)
       .map(dest => destinationMap.get(dest.id)!)
       .sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Debug: Log tree structure
+    console.log('Tree structure built:');
+    rootNodes.forEach(root => {
+      console.log(`Region: ${root.name} (${root.children.length} subregions)`);
+      root.children.forEach(subregion => {
+        console.log(`  Subregion: ${subregion.name} (${subregion.children.length} hotels)`);
+        subregion.children.forEach(hotel => {
+          console.log(`    Hotel: ${hotel.name}`);
+        });
+      });
+    });
+    
+    return rootNodes;
   }, [destinations, hotels]);
 
   // Index nodes for quick lookup
@@ -766,7 +789,12 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     const cols: DestinationTreeItem[][] = [];
     cols.push(getChildren(null)); // main regions
     for (let i = 0; i < activePath.length; i++) {
-      cols.push(getChildren(activePath[i]));
+      const children = getChildren(activePath[i]);
+      cols.push(children);
+      console.log(`Column ${i + 1} (${activePath[i]}): ${children.length} items`);
+      children.forEach(child => {
+        console.log(`  - ${child.name} (${child.isHotel ? 'hotel' : 'destination'}) - ${child.children.length} children`);
+      });
     }
     return cols;
   }, [activePath, nodeIndex, treeData]);
@@ -774,6 +802,9 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   const onClickNode = (node: DestinationTreeItem, depth: number) => {
     // Update expanded path at this depth (browse only; do not select here)
     const newPath = [...activePath.slice(0, depth), node.id];
+    console.log(`Clicked node: ${node.name} at depth ${depth}`);
+    console.log(`Node has ${node.children.length} children`);
+    console.log(`New active path:`, newPath);
     setActivePath(newPath);
   };
 
@@ -1229,7 +1260,7 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
               style={{ marginTop: columnOffsets[depth] || 0 }}
             >
             <div className="text-sm font-semibold text-gray-700 mb-2">
-              {depth === 0 ? 'Main Regions' : depth === 1 ? 'Sub-Regions' : 'More'}
+              {depth === 0 ? 'Main Regions' : depth === 1 ? 'Sub-Regions' : depth === 2 ? 'Hotels' : 'More'}
             </div>
             <div className="space-y-3">
               {items.map((node) => {

@@ -18,7 +18,7 @@ export interface Destination {
 export interface Hotel {
   id: string;
   name: string;
-  subregion_id: string;
+  destination_id: string;  // Points to destinations.id (subregion)
   image_url: string;
   created_at?: string;
   updated_at?: string;
