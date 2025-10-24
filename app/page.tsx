@@ -67,7 +67,7 @@ export default function Page() {
     return t.toISOString().split('T')[0];
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = {
       clientName,
@@ -113,26 +113,45 @@ export default function Page() {
       return;
     }
 
-    fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Network response was not ok');
-        return res.json().catch(() => ({}));
-      })
-      .then(() => {
-        if (routePreference === 'predefined') {
-          alert('Pre-defined route selected successfully! We will contact you with your chosen route details.');
-        } else {
-          alert('Trip design form submitted successfully! We will contact you to plan your custom trip.');
-        }
-      })
-      .catch((err) => {
-        console.error('Error:', err);
-        alert('There was an error submitting the form. Please try again.');
+    try {
+      // First, save to Supabase (with null agency_id for main domain)
+      const submissionResponse = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agency_id: null,
+          form_data: formData,
+        }),
       });
+
+      if (!submissionResponse.ok) {
+        console.error('Failed to save submission to database');
+        // Continue anyway to send webhook
+      } else {
+        const submissionData = await submissionResponse.json();
+        console.log('Form saved to database:', submissionData);
+      }
+
+      // Then send to webhook
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!webhookResponse.ok) throw new Error('Network response was not ok');
+      
+      await webhookResponse.json().catch(() => ({}));
+
+      if (routePreference === 'predefined') {
+        alert('Pre-defined route selected successfully! We will contact you with your chosen route details.');
+      } else {
+        alert('Trip design form submitted successfully! We will contact you to plan your custom trip.');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      alert('There was an error submitting the form. Please try again.');
+    }
 
     console.log('Form Data:', formData);
   };
