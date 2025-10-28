@@ -1,17 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://jiosxmvocybjwomejymg.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imppb3N4bXZvY3liandvbWVqeW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTg2NjQsImV4cCI6MjA3NDk5NDY2NH0.y6Xl5BPnRlU-nZMkSmq-L1tKb9YZKuO_90jOq1jDK2k';
+// Get environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Use fallback values for build time, will throw error at runtime if not set
+const SUPABASE_URL: string = supabaseUrl || 'https://placeholder.supabase.co';
+const SUPABASE_KEY: string = supabaseKey || 'placeholder-key';
+
+// Validate at runtime (not during build)
+if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseKey)) {
+  console.error(
+    'Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  );
+}
 
 // Client-side Supabase client (for browser)
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
  * Create a Supabase client for server-side operations
  * This is for use in Server Components, Route Handlers, and Server Actions
  */
 export function createServerSupabaseClient() {
-  return createClient(supabaseUrl, supabaseKey, {
+  return createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
       persistSession: false,
     },
@@ -30,7 +42,7 @@ export async function createAuthenticatedSupabaseClient() {
   const accessToken = cookieStore.get('sb-access-token')?.value;
   const refreshToken = cookieStore.get('sb-refresh-token')?.value;
 
-  const client = createClient(supabaseUrl, supabaseKey, {
+  const client = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
       persistSession: false,
     },

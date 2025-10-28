@@ -5,6 +5,29 @@ import { getAgencyBySubdomain } from './lib/agency';
 const MAIN_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'finestafrica.ai';
 
 /**
+ * Add security headers to response
+ */
+function addSecurityHeaders(response: NextResponse): void {
+  // Prevent clickjacking
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  
+  // Prevent MIME type sniffing
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  
+  // XSS Protection
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  
+  // Referrer Policy
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Permissions Policy (restrict features)
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  );
+}
+
+/**
  * Extract subdomain from hostname
  */
 function getSubdomain(hostname: string): string | null {
@@ -65,7 +88,10 @@ export async function middleware(request: NextRequest) {
 
   // Bypass middleware for certain paths
   if (shouldBypass(pathname)) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    // Add security headers even for bypassed paths
+    addSecurityHeaders(response);
+    return response;
   }
 
   // If already on an agency route, don't rewrite
@@ -78,9 +104,10 @@ export async function middleware(request: NextRequest) {
 
   // Handle www subdomain by redirecting to main domain
   if (subdomain === 'www') {
-    const url = request.nextUrl.clone();
-    url.host = MAIN_DOMAIN;
-    return NextResponse.redirect(url);
+    // Build the redirect URL with the main domain
+    const protocol = request.nextUrl.protocol;
+    const redirectUrl = `${protocol}//${MAIN_DOMAIN}${pathname}${request.nextUrl.search}`;
+    return NextResponse.redirect(redirectUrl, 301);
   }
 
   // No subdomain = main domain, continue normally
@@ -121,6 +148,9 @@ export async function middleware(request: NextRequest) {
   response.headers.set('x-agency-subdomain', subdomain);
   response.headers.set('x-agency-id', agency.id);
   response.headers.set('x-agency-name', agency.name);
+  
+  // Add security headers
+  addSecurityHeaders(response);
 
   return response;
 }

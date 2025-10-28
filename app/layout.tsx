@@ -1,9 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
-  title: 'Travel Planning Form',
-  description: 'Ported from static HTML to Next.js 14 App Router with Tailwind',
+  title: 'Finest Africa Travel Planning',
+  description: 'Plan your perfect African adventure with our comprehensive travel planning platform',
+  keywords: 'travel, africa, safari, planning, vacation, tourism',
 };
 
 export default function RootLayout({
@@ -13,7 +15,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-100">{children}</body>
+      <body className="min-h-screen bg-gray-100">
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </body>
     </html>
   );
 }

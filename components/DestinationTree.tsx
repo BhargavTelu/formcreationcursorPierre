@@ -635,12 +635,6 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
 
         setDestinations(destinationsData || []);
         setHotels(hotelsData || []);
-        
-        // Debug logging
-        console.log('Destinations loaded:', destinationsData?.length || 0);
-        console.log('Hotels loaded:', hotelsData?.length || 0);
-        console.log('Sample destination:', destinationsData?.[0]);
-        console.log('Sample hotel:', hotelsData?.[0]);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -685,8 +679,7 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
       const parent = destinationMap.get(hotel.destination_id);
       if (parent) {
         parent.children.push(hotelItem);
-        console.log(`Added hotel "${hotel.name}" to subregion "${parent.name}"`);
-      } else {
+      } else if (process.env.NODE_ENV === 'development') {
         console.warn(`Could not find parent subregion for hotel "${hotel.name}" with destination_id: ${hotel.destination_id}`);
       }
     });
@@ -703,24 +696,10 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     });
 
     // Return root nodes (destinations with parent_id = null)
-    const rootNodes = destinations
+    return destinations
       .filter(dest => dest.parent_id === null)
       .map(dest => destinationMap.get(dest.id)!)
       .sort((a, b) => a.name.localeCompare(b.name));
-    
-    // Debug: Log tree structure
-    console.log('Tree structure built:');
-    rootNodes.forEach(root => {
-      console.log(`Region: ${root.name} (${root.children.length} subregions)`);
-      root.children.forEach(subregion => {
-        console.log(`  Subregion: ${subregion.name} (${subregion.children.length} hotels)`);
-        subregion.children.forEach(hotel => {
-          console.log(`    Hotel: ${hotel.name}`);
-        });
-      });
-    });
-    
-    return rootNodes;
   }, [destinations, hotels]);
 
   // Index nodes for quick lookup
@@ -789,12 +768,7 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
     const cols: DestinationTreeItem[][] = [];
     cols.push(getChildren(null)); // main regions
     for (let i = 0; i < activePath.length; i++) {
-      const children = getChildren(activePath[i]);
-      cols.push(children);
-      console.log(`Column ${i + 1} (${activePath[i]}): ${children.length} items`);
-      children.forEach(child => {
-        console.log(`  - ${child.name} (${child.isHotel ? 'hotel' : 'destination'}) - ${child.children.length} children`);
-      });
+      cols.push(getChildren(activePath[i]));
     }
     return cols;
   }, [activePath, nodeIndex, treeData]);
@@ -802,9 +776,6 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   const onClickNode = (node: DestinationTreeItem, depth: number) => {
     // Update expanded path at this depth (browse only; do not select here)
     const newPath = [...activePath.slice(0, depth), node.id];
-    console.log(`Clicked node: ${node.name} at depth ${depth}`);
-    console.log(`Node has ${node.children.length} children`);
-    console.log(`New active path:`, newPath);
     setActivePath(newPath);
   };
 
@@ -1088,11 +1059,6 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
       .filter((it) => it.name.toLowerCase().includes(q) || it.pathNames.join(' ').toLowerCase().includes(q))
       .slice(0, 20);
     
-    // Debug logging
-    console.log('Search query:', q);
-    console.log('Search matches found:', matches.length);
-    console.log('Is search open:', isSearchOpen);
-    
     // Update highlighted IDs when search results change
     if (q) {
       const ids = new Set(matches.map(m => m.id));
@@ -1172,14 +1138,11 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
           value={query}
           onChange={(e) => {
             const newQuery = e.target.value;
-            console.log('Input changed to:', newQuery);
             setQuery(newQuery);
             // Show dropdown immediately on input
             if (newQuery.trim() !== '') {
-              console.log('Setting search open to true');
               setIsSearchOpen(true);
             } else {
-              console.log('Setting search open to false');
               setIsSearchOpen(false);
               setHighlightedIds(new Set());
             }
