@@ -41,16 +41,23 @@ function getSubdomain(hostname: string): string | null {
     return null;
   }
 
-  // Production: subdomain.finestafrica.ai
   // Remove port if present
   const host = hostname.split(':')[0];
   
-  // Split by dots
+  // Check if this is the main domain exactly
+  if (host === MAIN_DOMAIN) {
+    return null; // Main domain has no subdomain
+  }
+  
+  // Check if this is www.main-domain
+  if (host === `www.${MAIN_DOMAIN}`) {
+    return 'www';
+  }
+  
+  // For other potential subdomains
   const parts = host.split('.');
   
-  // Check if we have a subdomain
-  // Format: subdomain.finestafrica.ai (3 parts)
-  // Main domain: finestafrica.ai (2 parts)
+  // Check if we have a subdomain pattern
   if (parts.length >= 3) {
     // Get the subdomain (first part)
     const subdomain = parts[0];
@@ -107,7 +114,14 @@ export async function middleware(request: NextRequest) {
     // Build the redirect URL with the main domain
     const protocol = request.nextUrl.protocol;
     const redirectUrl = `${protocol}//${MAIN_DOMAIN}${pathname}${request.nextUrl.search}`;
-    return NextResponse.redirect(redirectUrl, 301);
+    
+    // Add cache control headers to prevent browsers from caching the redirect
+    const response = NextResponse.redirect(redirectUrl, 301);
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   }
 
   // No subdomain = main domain, continue normally
