@@ -76,6 +76,13 @@ export async function middleware(request: NextRequest) {
   // Extract subdomain
   const subdomain = getSubdomain(hostname);
 
+  // Handle www subdomain by redirecting to main domain
+  if (subdomain === 'www') {
+    const url = request.nextUrl.clone();
+    url.host = MAIN_DOMAIN;
+    return NextResponse.redirect(url);
+  }
+
   // No subdomain = main domain, continue normally
   if (!subdomain) {
     return NextResponse.next();
