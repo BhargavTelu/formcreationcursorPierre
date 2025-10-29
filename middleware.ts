@@ -117,14 +117,15 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomain(hostname);
 
   // Handle www subdomain by redirecting to main domain
-  if (subdomain === 'www') {
+  // Only redirect if we're actually on www subdomain (subdomain === 'www' means we are)
+  if (subdomain === 'www' && hostname.startsWith('www.')) {
     // Build the redirect URL with the main domain
     const protocol = request.nextUrl.protocol;
     const redirectUrl = `${protocol}//${MAIN_DOMAIN}${pathname}${request.nextUrl.search}`;
     
     // Add debug logging
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Middleware] Redirecting www to: ${redirectUrl}`);
+      console.log(`[Middleware] Redirecting www (${hostname}) to: ${redirectUrl}`);
     }
     
     // Add cache control headers to prevent browsers from caching the redirect
