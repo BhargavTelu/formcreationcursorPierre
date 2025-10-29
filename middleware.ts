@@ -93,6 +93,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
+  // Add debug logging for development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Middleware] Request to: ${hostname}${pathname}`);
+  }
+
   // Bypass middleware for certain paths
   if (shouldBypass(pathname)) {
     const response = NextResponse.next();
@@ -103,7 +108,9 @@ export async function middleware(request: NextRequest) {
 
   // If already on an agency route, don't rewrite
   if (pathname.startsWith('/agency/')) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    addSecurityHeaders(response);
+    return response;
   }
 
   // Extract subdomain
@@ -115,18 +122,26 @@ export async function middleware(request: NextRequest) {
     const protocol = request.nextUrl.protocol;
     const redirectUrl = `${protocol}//${MAIN_DOMAIN}${pathname}${request.nextUrl.search}`;
     
+    // Add debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Middleware] Redirecting www to: ${redirectUrl}`);
+    }
+    
     // Add cache control headers to prevent browsers from caching the redirect
     const response = NextResponse.redirect(redirectUrl, 301);
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    addSecurityHeaders(response);
     
     return response;
   }
 
   // No subdomain = main domain, continue normally
   if (!subdomain) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    addSecurityHeaders(response);
+    return response;
   }
 
   console.log(`[Middleware] Detected subdomain: ${subdomain}`);
