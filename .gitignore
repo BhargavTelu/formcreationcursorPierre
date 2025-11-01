@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+/.pnp
+.pnp.js
 
 # Next.js
 .next/
@@ -7,15 +9,21 @@ out/
 .vercel/
 .turbo/
 .swc/
+.next/types/
 
 # Build outputs
 build/
 dist/
 coverage/
+*.tsbuildinfo
 
-# Environment files
+# Environment files (IMPORTANT: Never commit these!)
 .env
-.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 !.env.example
 
 # Logs
@@ -23,14 +31,23 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 *.log
+logs/
 
-# Editor/OS
-.DS_Store
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 .idea/
 .vscode/
+.vscode-test/
 
 # Package managers
+# Note: package-lock.json and yarn.lock should usually be committed
+pnpm-lock.yaml
 .pnp.cjs
 .pnp.loader.mjs
 .pnp.data.json
@@ -41,9 +58,52 @@ pnpm-debug.log*
 .cache/
 .parcel-cache/
 .eslintcache
+.stylelintcache
+*.cache
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+*.bak
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
 
 # Cursor workspace
 .cursor/
 
-# Types from Next
-.next/types/
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# Database files (if using local SQLite or similar)
+*.db
+*.sqlite
+*.sqlite3
+
+# Supabase local files
+.supabase/
+
+# Misc
+*.pem
+.firebase/
+.firebaserc
+firebase.json

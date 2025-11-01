@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import slugify from 'slugify';
 import { createAgency, invalidateAgencyCache, getAllAgencies } from '@/lib/agency';
 import { getCurrentUser, createAuthenticatedSupabaseClient } from '@/lib/supabase';
+import { isSuperAdmin } from '@/lib/admin';
 import { createAgencySchema } from '@/lib/types';
 import type { AgencyApiResponse } from '@/lib/types';
 
 /**
  * GET /api/admin/agencies
- * List all agencies (requires authentication)
+ * List all agencies (requires super admin authentication)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +18,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Check if user is super admin
+    const isAdmin = await isSuperAdmin(user.id);
+    if (!isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden. Only super admins can view agencies.' },
+        { status: 403 }
       );
     }
 
@@ -37,7 +47,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/admin/agencies
- * Create a new agency (requires authentication)
+ * Create a new agency (requires super admin authentication)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +66,18 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[API] Authenticated user:', user.email, 'ID:', user.id);
+
+    // Check if user is super admin
+    const isAdmin = await isSuperAdmin(user.id);
+    if (!isAdmin) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Forbidden. Only super admins can create agencies.' 
+        } as AgencyApiResponse,
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await request.json();

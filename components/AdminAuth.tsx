@@ -3,15 +3,17 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Simple admin authentication component
- * Use this to sign in before creating agencies
+ * Admin authentication component
+ * Only allows sign-in for users who are in the admin_users table
  */
 export default function AdminAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [message, setMessage] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Check if user is already signed in
   const checkUser = async () => {
@@ -48,25 +50,40 @@ export default function AdminAuth() {
     }
   };
 
-  // Sign up
-  const handleSignUp = async (e: React.FormEvent) => {
+  // Forgot password / Reset password
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setForgotPasswordLoading(true);
     setMessage('');
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+      // First, check if email is in admin_users table
+      const checkResponse = await fetch('/api/admin/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const checkResult = await checkResponse.json();
+
+      if (!checkResult.success) {
+        setMessage(`Error: ${checkResult.error || 'This email is not authorized to access the admin panel.'}`);
+        return;
+      }
+
+      // If email is in admin list, send password reset email
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/admin?reset=true`,
       });
 
       if (error) throw error;
 
-      setMessage('Check your email for the confirmation link!');
+      setMessage('Password reset email sent! Check your inbox for instructions.');
+      setShowForgotPassword(false);
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
-      setLoading(false);
+      setForgotPasswordLoading(false);
     }
   };
 
@@ -95,7 +112,7 @@ export default function AdminAuth() {
               Signed in as: {user.email}
             </p>
             <p className="text-xs text-green-600">
-              You can now create agencies via the API
+              You can now manage agencies and invite other admins
             </p>
           </div>
           <button
@@ -113,69 +130,121 @@ export default function AdminAuth() {
     <div className="rounded-lg border border-gray-200 bg-white p-6">
       <h3 className="mb-4 text-lg font-semibold">Admin Authentication</h3>
       
-      <form className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            placeholder="admin@example.com"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            placeholder="••••••••"
-            required
-          />
-        </div>
-
-        {message && (
-          <div className={`rounded-md p-3 text-sm ${
-            message.includes('Error') 
-              ? 'bg-red-50 text-red-800' 
-              : 'bg-blue-50 text-blue-800'
-          }`}>
-            {message}
+      {!showForgotPassword ? (
+        <form onSubmit={handleSignIn} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              placeholder="admin@example.com"
+              required
+            />
           </div>
-        )}
 
-        <div className="flex gap-2">
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          {message && (
+            <div className={`rounded-md p-3 text-sm ${
+              message.includes('Error') 
+                ? 'bg-red-50 text-red-800' 
+                : 'bg-blue-50 text-blue-800'
+            }`}>
+              {message}
+            </div>
+          )}
+
           <button
-            type="button"
-            onClick={handleSignIn}
+            type="submit"
             disabled={loading}
-            className="flex-1 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {loading ? 'Loading...' : 'Sign In'}
           </button>
+
           <button
             type="button"
-            onClick={handleSignUp}
-            disabled={loading}
-            className="flex-1 rounded-md border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
+            onClick={() => {
+              setShowForgotPassword(true);
+              setMessage('');
+            }}
+            className="w-full text-sm text-gray-600 hover:text-gray-800"
           >
-            Sign Up
+            Forgot password or first time setup?
           </button>
-        </div>
-      </form>
+        </form>
+      ) : (
+        <form onSubmit={handleForgotPassword} className="space-y-4">
+          <div>
+            <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              id="forgot-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              placeholder="admin@example.com"
+              required
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Only authorized admin emails can reset their password
+            </p>
+          </div>
+
+          {message && (
+            <div className={`rounded-md p-3 text-sm ${
+              message.includes('Error') 
+                ? 'bg-red-50 text-red-800' 
+                : 'bg-blue-50 text-blue-800'
+            }`}>
+              {message}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={forgotPasswordLoading}
+              className="flex-1 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {forgotPasswordLoading ? 'Sending...' : 'Send Reset Email'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotPassword(false);
+                setMessage('');
+              }}
+              className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Back
+            </button>
+          </div>
+        </form>
+      )}
 
       <p className="mt-4 text-xs text-gray-500">
-        Note: After signing up, check your email for a confirmation link before signing in.
+        Only users authorized by a super admin can access this panel.
       </p>
     </div>
   );
