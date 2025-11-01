@@ -143,6 +143,7 @@ export async function createAgency(
   agencyData: {
     name: string;
     subdomain: string;
+    email: string;
     logo_url?: string | null;
     primary_color?: string;
     secondary_color?: string;
@@ -167,6 +168,7 @@ export async function createAgency(
       .insert({
         name: agencyData.name,
         subdomain: normalizedSubdomain,
+        email: agencyData.email,
         logo_url: agencyData.logo_url || null,
         primary_color: agencyData.primary_color || '#059669',
         secondary_color: agencyData.secondary_color || '#0ea5e9',

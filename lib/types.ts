@@ -6,6 +6,7 @@ export interface Agency {
   id: string;
   name: string;
   subdomain: string;
+  email: string;
   logo_url: string | null;
   primary_color: string;
   secondary_color: string;
@@ -29,6 +30,7 @@ export const createAgencySchema = z.object({
       (val) => !['www', 'api', 'admin', 'app', 'mail', 'ftp', 'localhost'].includes(val),
       'This subdomain is reserved'
     ),
+  email: z.string().email('Must be a valid email address'),
   logo_url: z.string().url('Must be a valid URL').optional().nullable(),
   primary_color: z
     .string()

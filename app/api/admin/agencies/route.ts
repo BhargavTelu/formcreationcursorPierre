@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, subdomain, logo_url, primary_color, secondary_color } = validation.data;
+    const { name, subdomain, email, logo_url, primary_color, secondary_color } = validation.data;
 
     console.log('[API] Creating agency with authenticated client...');
 
@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
     const result = await createAgency({
       name,
       subdomain,
+      email,
       logo_url: logo_url || null,
       primary_color,
       secondary_color,

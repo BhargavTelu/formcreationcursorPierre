@@ -11,6 +11,7 @@ export default function AdminPage() {
   // Form state
   const [name, setName] = useState('');
   const [subdomain, setSubdomain] = useState('');
+  const [email, setEmail] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#059669');
   const [secondaryColor, setSecondaryColor] = useState('#0ea5e9');
@@ -59,6 +60,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           name,
           subdomain,
+          email,
           logo_url: logoUrl || null,
           primary_color: primaryColor,
           secondary_color: secondaryColor,
@@ -74,6 +76,7 @@ export default function AdminPage() {
         // Reset form
         setName('');
         setSubdomain('');
+        setEmail('');
         setLogoUrl('');
         setPrimaryColor('#059669');
         setSecondaryColor('#0ea5e9');
@@ -155,6 +158,24 @@ export default function AdminPage() {
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Lowercase letters, numbers, and hyphens only
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Agency Email *
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  placeholder="contact@agency.com"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Contact email for communication
                 </p>
               </div>
 
