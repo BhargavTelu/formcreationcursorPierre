@@ -225,20 +225,31 @@ function getSubdomain(hostname: string): string | null {
     return parts.length > 1 && parts[0] !== 'localhost' ? parts[0] : null;
   }
 
-  const host = hostname.split(':')[0].toLowerCase();
+  const host = hostname.split(':')[0].toLowerCase().trim();
 
   // Exact main domain → no subdomain
   if (host === MAIN_DOMAIN) return null;
 
-  // www.maindomain.com → treat as root
-  if (host === `www.${MAIN_DOMAIN}`) return null; // ← CHANGED: www = root
+  // www.maindomain.com → treat as root (no subdomain)
+  if (host === `www.${MAIN_DOMAIN}`) return null;
 
+  // Handle subdomains: subdomain.maindomain.com
   const parts = host.split('.');
+  
+  // Need at least 3 parts for a subdomain (subdomain.domain.tld)
   if (parts.length < 3) return null;
 
+  // Get the subdomain (first part) and domain (last 2 parts)
   const subdomain = parts[0];
   const domain = parts.slice(-2).join('.');
-  return domain === MAIN_DOMAIN ? subdomain : null;
+
+  // Verify the domain matches our main domain
+  if (domain !== MAIN_DOMAIN) return null;
+
+  // If subdomain is 'www', treat as root (handled above, but double-check)
+  if (subdomain === 'www') return null;
+
+  return subdomain;
 }
 
 function shouldBypass(pathname: string): boolean {
@@ -289,15 +300,28 @@ export async function middleware(request: NextRequest) {
   }
 
   // === VALID SUBDOMAIN → check agency ===
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Middleware] Checking agency for subdomain: ${subdomain} (hostname: ${hostname})`);
+  }
+  
   const agency = await getAgencyBySubdomain(subdomain);
   if (!agency) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Middleware] Agency not found for subdomain: ${subdomain}`);
+    }
     return new NextResponse(
       JSON.stringify({
         error: 'Agency not found',
         message: `The agency "${subdomain}" does not exist.`,
+        subdomain,
+        hostname,
       }),
       { status: 404, headers: { 'Content-Type': 'application/json' } }
     );
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Middleware] Agency found: ${agency.name}, rewriting to /agency/${subdomain}${pathname}`);
   }
 
   // Rewrite to /agency/subdomain

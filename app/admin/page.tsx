@@ -68,7 +68,9 @@ export default function AdminPage() {
       const result = await response.json();
 
       if (response.ok) {
-        setMessage(`✓ Agency created successfully! URL: ${subdomain}.${window.location.hostname}`);
+        // Get the main domain (remove www if present)
+        const mainDomain = window.location.hostname.replace(/^www\./, '');
+        setMessage(`✓ Agency created successfully! URL: https://${subdomain}.${mainDomain}`);
         // Reset form
         setName('');
         setSubdomain('');
@@ -293,7 +295,7 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3">
                         <a
-                          href={`http://${agency.subdomain}.${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`}
+                          href={`https://${agency.subdomain}.${window.location.hostname.replace(/^www\./, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-emerald-600 hover:text-emerald-700"
