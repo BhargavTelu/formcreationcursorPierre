@@ -116,32 +116,35 @@ export async function middleware(request: NextRequest) {
   // Extract subdomain
   const subdomain = getSubdomain(hostname);
 
+  // CRITICAL: If we're already on the main domain (no subdomain), never redirect
+  // This prevents any redirect loops
+  if (!subdomain) {
+    const response = NextResponse.next();
+    addSecurityHeaders(response);
+    return response;
+  }
+
   // Handle www subdomain by redirecting to main domain
-  // Only redirect if we're actually on www subdomain (subdomain === 'www' means we are)
+  // This is the ONLY redirect we do - www → main domain
   if (subdomain === 'www' && hostname.startsWith('www.')) {
-    // Build the redirect URL with the main domain
-    const protocol = request.nextUrl.protocol;
-    const redirectUrl = `${protocol}//${MAIN_DOMAIN}${pathname}${request.nextUrl.search}`;
+    // Always use HTTPS for redirect (Vercel handles HTTP → HTTPS automatically)
+    // Build absolute URL to ensure clean redirect without loops
+    const redirectUrl = new URL(pathname + (request.nextUrl.search || ''), `https://${MAIN_DOMAIN}`);
     
     // Add debug logging
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Middleware] Redirecting www (${hostname}) to: ${redirectUrl}`);
+      console.log(`[Middleware] Redirecting www (${hostname}) to: ${redirectUrl.toString()}`);
     }
     
-    // Add cache control headers to prevent browsers from caching the redirect
+    // Create permanent redirect (301)
     const response = NextResponse.redirect(redirectUrl, 301);
+    
+    // Add cache control headers to prevent browsers from caching redirect loops
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
     addSecurityHeaders(response);
     
-    return response;
-  }
-
-  // No subdomain = main domain, continue normally
-  if (!subdomain) {
-    const response = NextResponse.next();
-    addSecurityHeaders(response);
     return response;
   }
 
