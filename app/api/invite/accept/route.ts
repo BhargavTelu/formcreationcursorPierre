@@ -107,16 +107,13 @@ export async function POST(request: NextRequest) {
     console.log('[API] User created successfully:', authData.user.id);
     console.log('[API] Waiting for database trigger to create profile...');
 
-    // Note: The profile is automatically created with admin role via database trigger
-    // The trigger checks for valid invitation and sets role to 'admin'
-
-    // Wait for trigger to complete (increased timeout)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Wait for trigger to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Verify profile was created correctly
     console.log('[API] Checking if profile was created...');
     
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role')
       .eq('id', authData.user.id)
@@ -124,25 +121,104 @@ export async function POST(request: NextRequest) {
 
     console.log('[API] Profile query result:', { profile, error: profileError });
 
-    if (profileError) {
-      console.error('[API] Error fetching profile:', profileError);
-      return NextResponse.json(
+    // FALLBACK: If trigger failed, manually create profile
+    if (profileError || !profile) {
+      console.warn('[API] Trigger may have failed. Attempting manual profile creation...');
+      
+      // Use service role to bypass RLS
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!serviceRoleKey) {
+        console.error('[API] Service role key not configured');
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Database error: Service role key not configured',
+            details: 'Cannot create profile manually. Trigger may have failed.',
+            userId: authData.user.id,
+          },
+          { status: 500 }
+        );
+      }
+
+      // Create Supabase client with service role (bypasses RLS)
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey,
         {
-          success: false,
-          error: 'Database error finding user',
-          details: profileError.message,
-          userId: authData.user.id,
-        },
-        { status: 500 }
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
       );
+
+      // Manually create profile with admin role
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: invitation.email,
+          role: 'admin',
+          invited_by: invitation.invited_by,
+          invited_at: invitation.created_at,
+          activated_at: new Date().toISOString(),
+        })
+        .select('id, email, role')
+        .single();
+
+      if (createError) {
+        console.error('[API] Error manually creating profile:', createError);
+        
+        // Try update instead (in case profile exists but wasn't found due to RLS)
+        const { data: updatedProfile, error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            role: 'admin',
+            activated_at: new Date().toISOString(),
+            invited_by: invitation.invited_by,
+            invited_at: invitation.created_at,
+          })
+          .eq('id', authData.user.id)
+          .select('id, email, role')
+          .single();
+
+        if (updateError || !updatedProfile) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Database error: Failed to create or update profile',
+              details: createError?.message || updateError?.message || 'Unknown error',
+              userId: authData.user.id,
+            },
+            { status: 500 }
+          );
+        }
+
+        profile = updatedProfile;
+        console.log('[API] Profile updated manually:', profile);
+      } else {
+        profile = newProfile;
+        console.log('[API] Profile created manually:', profile);
+      }
+
+      // Mark invitation as accepted
+      await supabaseAdmin
+        .from('invitations')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+          accepted_by: authData.user.id,
+        })
+        .eq('id', invitation.id);
     }
 
+    // Final verification
     if (!profile) {
-      console.error('[API] Profile not found for user:', authData.user.id);
       return NextResponse.json(
         {
           success: false,
-          error: 'Profile not created. Database trigger may have failed.',
+          error: 'Profile not found after creation attempt',
           userId: authData.user.id,
         },
         { status: 500 }
