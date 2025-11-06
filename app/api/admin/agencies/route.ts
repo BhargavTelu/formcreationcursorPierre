@@ -5,6 +5,9 @@ import { getCurrentUser, createAuthenticatedSupabaseClient } from '@/lib/supabas
 import { createAgencySchema } from '@/lib/types';
 import type { AgencyApiResponse } from '@/lib/types';
 
+// Force dynamic rendering (API routes need auth/cookies)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/agencies
  * List all agencies (requires authentication)

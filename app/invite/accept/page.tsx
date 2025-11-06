@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Invitation Acceptance Page
- * Public page for accepting admin invitations
- * URL: /invite/accept?token=xxx
+ * Invitation Acceptance Page Content
+ * Separated to wrap in Suspense boundary
  */
-export default function AcceptInvitePage() {
+function AcceptInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('token');
@@ -280,6 +279,28 @@ export default function AcceptInvitePage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Invitation Acceptance Page
+ * Public page for accepting admin invitations
+ * URL: /invite/accept?token=xxx
+ */
+export default function AcceptInvitePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-sky-50 flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-medium">Loading invitation...</p>
+          </div>
+        </div>
+      }
+    >
+      <AcceptInviteContent />
+    </Suspense>
   );
 }
 

@@ -9,6 +9,9 @@ import { requireAdmin, createInvitation, getAllInvitations } from '@/lib/auth';
 import { sendInvitationEmail } from '@/lib/email';
 import { getUserProfile } from '@/lib/auth';
 
+// Force dynamic rendering (API routes need auth/cookies)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/invite
  * Get all invitations (admin only)

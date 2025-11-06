@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateInvitationToken } from '@/lib/auth';
 
+// Force dynamic rendering (required for query params)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/invite/verify?token=xxx
  * Verify invitation token without authentication

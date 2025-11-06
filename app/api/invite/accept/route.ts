@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateInvitationToken } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase';
 
+// Force dynamic rendering (API route with POST body)
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/invite/accept
  * Accept invitation and create admin account
