@@ -48,27 +48,8 @@ export default function AdminAuth() {
     }
   };
 
-  // Sign up
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      setMessage('Check your email for the confirmation link!');
-    } catch (error: any) {
-      setMessage(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Note: Public sign-up removed for security
+  // Only invited users can create accounts via /invite/accept
 
   // Sign out
   const handleSignOut = async () => {
@@ -154,29 +135,21 @@ export default function AdminAuth() {
           </div>
         )}
 
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleSignIn}
-            disabled={loading}
-            className="flex-1 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : 'Sign In'}
-          </button>
-          <button
-            type="button"
-            onClick={handleSignUp}
-            disabled={loading}
-            className="flex-1 rounded-md border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
-          >
-            Sign Up
-          </button>
-        </div>
+            <button
+          type="button"
+          onClick={handleSignIn}
+          disabled={loading}
+          className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {loading ? 'Signing In...' : 'Sign In'}
+        </button>
       </form>
 
-      <p className="mt-4 text-xs text-gray-500">
-        Note: After signing up, check your email for a confirmation link before signing in.
-      </p>
+      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <p className="text-xs text-blue-800">
+          <span className="font-semibold">🔒 Admins Only:</span> Don't have an account? Ask an existing administrator to send you an invitation.
+        </p>
+      </div>
     </div>
   );
 }

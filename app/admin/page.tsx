@@ -110,10 +110,23 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="mx-auto max-w-6xl px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Agency Admin Dashboard</h1>
-          <p className="mt-2 text-gray-600">
-            Manage travel agency subdomains and branding
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Agency Admin Dashboard</h1>
+              <p className="mt-2 text-gray-600">
+                Manage travel agency subdomains and branding
+              </p>
+            </div>
+            <a
+              href="/admin/invite"
+              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 flex items-center gap-2"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Invite Admin
+            </a>
+          </div>
         </div>
 
         {/* Authentication */}
