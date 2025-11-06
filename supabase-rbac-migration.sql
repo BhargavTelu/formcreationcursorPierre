@@ -306,11 +306,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to generate secure invitation token
+-- Function to generate secure invitation token (URL-safe)
 CREATE FUNCTION generate_invitation_token()
 RETURNS TEXT AS $$
+DECLARE
+  token_bytes BYTEA;
+  token_b64 TEXT;
 BEGIN
-  RETURN encode(gen_random_bytes(32), 'base64');
+  -- Generate 32 random bytes
+  token_bytes := gen_random_bytes(32);
+  
+  -- Encode to base64
+  token_b64 := encode(token_bytes, 'base64');
+  
+  -- Make URL-safe: replace + with -, / with _, and remove =
+  token_b64 := replace(token_b64, '+', '-');
+  token_b64 := replace(token_b64, '/', '_');
+  token_b64 := replace(token_b64, '=', '');
+  
+  RETURN token_b64;
 END;
 $$ LANGUAGE plpgsql;
 

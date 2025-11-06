@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user account via Supabase Auth
+    console.log('[API] Creating user account for:', invitation.email);
+    
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: invitation.email,
       password: password,
@@ -96,34 +98,71 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: authError?.message || 'Failed to create account',
+          details: authError?.status || 'unknown',
         },
         { status: 500 }
       );
     }
 
+    console.log('[API] User created successfully:', authData.user.id);
+    console.log('[API] Waiting for database trigger to create profile...');
+
     // Note: The profile is automatically created with admin role via database trigger
     // The trigger checks for valid invitation and sets role to 'admin'
 
-    // Wait a moment for trigger to complete
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait for trigger to complete (increased timeout)
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Verify profile was created correctly
-    const { data: profile } = await supabase
+    console.log('[API] Checking if profile was created...');
+    
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role')
       .eq('id', authData.user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      console.error('[API] Profile not created correctly:', profile);
+    console.log('[API] Profile query result:', { profile, error: profileError });
+
+    if (profileError) {
+      console.error('[API] Error fetching profile:', profileError);
       return NextResponse.json(
         {
           success: false,
-          error: 'Account created but admin role not assigned. Please contact support.',
+          error: 'Database error finding user',
+          details: profileError.message,
+          userId: authData.user.id,
         },
         { status: 500 }
       );
     }
+
+    if (!profile) {
+      console.error('[API] Profile not found for user:', authData.user.id);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Profile not created. Database trigger may have failed.',
+          userId: authData.user.id,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (profile.role !== 'admin') {
+      console.error('[API] Profile has wrong role:', profile.role);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Account created but role is '${profile.role}' instead of 'admin'. Check invitation status.`,
+          userId: authData.user.id,
+          role: profile.role,
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log('[API] Profile verified successfully. Role:', profile.role);
 
     // Return success with session data
     return NextResponse.json({

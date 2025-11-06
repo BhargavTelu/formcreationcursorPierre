@@ -97,11 +97,12 @@ export async function requireAdmin(): Promise<{ userId: string; profile: Profile
 }
 
 /**
- * Generate secure invitation token
+ * Generate secure invitation token (URL-safe base64)
  */
 export function generateInvitationToken(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
+  // Use base64url encoding (URL-safe: no +, /, or =)
   return Buffer.from(array).toString('base64url');
 }
 
