@@ -4,6 +4,7 @@ import { agencyLoginSchema } from '@/lib/types';
 import { getAgencyBySubdomain } from '@/lib/agency';
 import {
   getAgencyUserByEmail,
+  getAgencyUserPasswordHash,
   verifyPassword,
   createAgencySession,
 } from '@/lib/agency-auth';
@@ -32,7 +33,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    const { getAgencyUserPasswordHash } = await import('@/lib/agency-auth');
     const passwordHash = await getAgencyUserPasswordHash(user.id);
 
     if (!passwordHash || !verifyPassword(password, passwordHash)) {

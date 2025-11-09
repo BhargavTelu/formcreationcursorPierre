@@ -79,6 +79,27 @@ export async function getAgencyUserByAgencyId(
 }
 
 /**
+ * Get agency user password hash for verification
+ */
+export async function getAgencyUserPasswordHash(
+  userId: string
+): Promise<string | null> {
+  const client = createServiceSupabaseClient();
+
+  const { data, error } = await client
+    .from('agency_users')
+    .select('password_hash')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.password_hash;
+}
+
+/**
  * Get agency user with agency information
  */
 export async function getAgencyUserWithAgency(
