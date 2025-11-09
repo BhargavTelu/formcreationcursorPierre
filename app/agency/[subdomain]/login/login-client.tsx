@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { Agency } from '@/lib/types';
 
 interface AgencyLoginClientProps {
@@ -10,7 +10,6 @@ interface AgencyLoginClientProps {
 }
 
 export default function AgencyLoginClient({ subdomain, agency }: AgencyLoginClientProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
@@ -45,8 +44,8 @@ export default function AgencyLoginClient({ subdomain, agency }: AgencyLoginClie
       }
 
       // Redirect to the specified URL or dashboard
-      router.push(redirectTo);
-      router.refresh();
+      // Use window.location for dynamic redirects to avoid typed route issues
+      window.location.href = redirectTo;
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
