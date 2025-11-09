@@ -10,6 +10,13 @@ const defaultFromAddress = process.env.INVITE_EMAIL_FROM || 'Finest Africa <admi
 function getAppBaseUrl() {
   const configured = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
   if (configured) return configured.replace(/\/$/, '');
+  
+  // In development, use localhost
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+  
+  // In production, use the production URL
   return 'https://www.finestafrica.ai';
 }
 
