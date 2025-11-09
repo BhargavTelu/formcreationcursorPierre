@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     const { data: invitationRows, error: invitationError } = await serviceClient
       .from('invitations')
-      .select('id, email, status, expires_at, invited_by')
+      .select('id, email, status, expires_at, invited_by, invited_at')
       .eq('token_hash', tokenHash)
       .limit(1);
 
@@ -109,17 +109,157 @@ export async function POST(request: NextRequest) {
         .update({ role: 'admin', activated_at: new Date().toISOString() })
         .eq('id', existingProfile.id);
     } else {
+      // Try to create a new user
       const { data: createdUser, error: createError } = await serviceClient.auth.admin.createUser({
         email: invitation.email,
         password,
         email_confirm: true,
       });
 
-      if (createError || !createdUser) {
+      // If user creation fails because email already exists in auth.users
+      if (createError && (createError.code === 'email_exists' || createError.status === 422)) {
+        console.log('[Invite] Email exists in auth.users but not in profiles, attempting to recover...', {
+          email: invitation.email,
+          error: createError.message
+        });
+
+        // Query auth.users directly via REST API to find the existing user by email
+        const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!SUPABASE_SERVICE_KEY) {
+          console.error('[Invite] Missing service role key for user lookup');
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Server configuration error.',
+              details: 'Unable to recover account'
+            },
+            { status: 500 }
+          );
+        }
+
+        try {
+          const getUserResponse = await fetch(
+            `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(invitation.email)}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                'apikey': SUPABASE_SERVICE_KEY,
+              },
+            }
+          );
+
+          if (!getUserResponse.ok) {
+            const errorData = await getUserResponse.json().catch(() => ({}));
+            console.error('[Invite] Failed to query user by email', {
+              status: getUserResponse.status,
+              error: errorData
+            });
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: 'Unable to recover existing account.',
+                details: 'Email exists but could not retrieve user information'
+              },
+              { status: 500 }
+            );
+          }
+
+          const usersData = await getUserResponse.json();
+          const existingAuthUser = usersData.users?.[0];
+
+          if (!existingAuthUser) {
+            console.error('[Invite] Email exists error but user not found in auth.users', {
+              email: invitation.email
+            });
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: 'Account recovery failed.',
+                details: 'Email exists but user record not found'
+              },
+              { status: 500 }
+            );
+          }
+
+        // Update the existing auth user's password
+        const { error: updateError } = await serviceClient.auth.admin.updateUserById(existingAuthUser.id, {
+          password,
+          email_confirm: true,
+        });
+
+        if (updateError) {
+          console.error('[Invite] Failed to update existing auth user', updateError);
+          return NextResponse.json(
+            { success: false, error: 'Unable to activate account.' },
+            { status: 500 }
+          );
+        }
+
+        createdUserId = existingAuthUser.id;
+
+        // Create the profile record for this existing auth user
+        const { error: profileInsertError } = await serviceClient
+          .from('profiles')
+          .insert({
+            id: existingAuthUser.id,
+            email: invitation.email,
+            role: 'admin',
+            invited_by: invitation.invited_by,
+            invited_at: invitation.invited_at || new Date().toISOString(),
+            activated_at: new Date().toISOString(),
+          });
+
+        if (profileInsertError) {
+          // If insert fails due to conflict, try update instead
+          if (profileInsertError.code === '23505') { // Unique violation
+            console.log('[Invite] Profile already exists, updating instead...');
+            const { error: profileUpdateError } = await serviceClient
+              .from('profiles')
+              .update({
+                role: 'admin',
+                invited_by: invitation.invited_by,
+                invited_at: invitation.invited_at || new Date().toISOString(),
+                activated_at: new Date().toISOString(),
+              })
+              .eq('id', existingAuthUser.id);
+
+            if (profileUpdateError) {
+              console.error('[Invite] Failed to update profile', profileUpdateError);
+              return NextResponse.json(
+                { success: false, error: 'Unable to create profile record.' },
+                { status: 500 }
+              );
+            }
+          } else {
+            console.error('[Invite] Failed to create profile', profileInsertError);
+            return NextResponse.json(
+              { success: false, error: 'Unable to create profile record.' },
+              { status: 500 }
+            );
+          }
+        }
+
+        console.log('[Invite] Successfully recovered account and created profile', {
+          userId: createdUserId,
+          email: invitation.email
+        });
+        } catch (recoveryError: any) {
+          console.error('[Invite] Error during account recovery', recoveryError);
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Account recovery failed.',
+              details: recoveryError?.message || 'Unexpected error during recovery'
+            },
+            { status: 500 }
+          );
+        }
+      } else if (createError || !createdUser) {
         console.error('[Invite] Failed to create user', {
           error: createError,
           message: createError?.message,
           status: createError?.status,
+          code: createError?.code,
           email: invitation.email
         });
         return NextResponse.json(
@@ -130,16 +270,17 @@ export async function POST(request: NextRequest) {
           },
           { status: 500 }
         );
-      }
-
-      createdUserId = createdUser.user?.id ?? null;
-      
-      if (!createdUserId) {
-        console.error('[Invite] User created but no ID returned', { createdUser });
-        return NextResponse.json(
-          { success: false, error: 'User created but invalid response from auth system.' },
-          { status: 500 }
-        );
+      } else {
+        // User was successfully created
+        createdUserId = createdUser.user?.id ?? null;
+        
+        if (!createdUserId) {
+          console.error('[Invite] User created but no ID returned', { createdUser });
+          return NextResponse.json(
+            { success: false, error: 'User created but invalid response from auth system.' },
+            { status: 500 }
+          );
+        }
       }
     }
 
