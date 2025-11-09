@@ -98,6 +98,44 @@ export async function POST(request: NextRequest) {
 
     console.log('[API] Agency created successfully:', result.agency?.id);
 
+    // Create initial agency user (owner) with the agency email
+    if (result.agency) {
+      const { createAgencyUser } = await import('@/lib/agency-auth');
+      
+      // Generate a secure random password for the initial user
+      const crypto = await import('crypto');
+      const initialPassword = crypto.randomBytes(16).toString('hex');
+      
+      const userResult = await createAgencyUser(
+        result.agency.id,
+        email, // Use agency email as initial user email
+        initialPassword,
+        undefined, // No name initially
+        user.id // Created by admin
+      );
+
+      if (userResult.success) {
+        console.log('[API] Agency user created:', userResult.user?.id);
+        // In production, you might want to send the password via email
+        // For now, we'll include it in the response (admin should save it)
+        return NextResponse.json(
+          {
+            success: true,
+            data: result.agency,
+            message: 'Agency created successfully',
+            initial_user: {
+              email,
+              password: initialPassword, // Admin should save this
+            },
+          } as AgencyApiResponse & { initial_user?: { email: string; password: string } },
+          { status: 201 }
+        );
+      } else {
+        console.warn('[API] Agency created but failed to create user:', userResult.error);
+        // Still return success, but warn about user creation
+      }
+    }
+
     // Invalidate any existing cache for this subdomain
     await invalidateAgencyCache(subdomain);
 

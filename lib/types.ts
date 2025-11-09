@@ -59,6 +59,44 @@ export const createAgencySchema = z.object({
 
 export type CreateAgencyInput = z.infer<typeof createAgencySchema>;
 
+// ==================== Agency User Types ====================
+
+export interface AgencyUser {
+  id: string;
+  agency_id: string;
+  email: string;
+  name: string | null;
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface AgencyUserWithAgency extends AgencyUser {
+  agency_name: string;
+  agency_subdomain: string;
+}
+
+// Zod schema for agency user creation
+export const createAgencyUserSchema = z.object({
+  agency_id: z.string().uuid('Invalid agency ID'),
+  email: z.string().email('Must be a valid email address').transform((val) => val.toLowerCase()),
+  password: z.string().min(12, 'Password must be at least 12 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+});
+
+export type CreateAgencyUserInput = z.infer<typeof createAgencyUserSchema>;
+
+// Zod schema for agency login
+export const agencyLoginSchema = z.object({
+  email: z.string().email('Must be a valid email address').transform((val) => val.toLowerCase()),
+  password: z.string().min(1, 'Password is required'),
+  agency_subdomain: z.string().min(1, 'Agency subdomain is required'),
+});
+
+export type AgencyLoginInput = z.infer<typeof agencyLoginSchema>;
+
 // ==================== Form Submission Types ====================
 
 export interface FormSubmission {
