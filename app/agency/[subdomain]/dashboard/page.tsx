@@ -22,13 +22,13 @@ export default async function AgencyDashboardPage({
   const token = cookieStore.get('agency-session-token')?.value;
 
   if (!token) {
-    redirect(`/agency/${subdomain}/login`);
+    redirect(`/agency/${subdomain}/login?redirect=/agency/${subdomain}/dashboard`);
   }
 
   const session = await validateAgencySession(token);
 
   if (!session.valid || !session.user || session.user.agency_subdomain !== subdomain) {
-    redirect(`/agency/${subdomain}/login`);
+    redirect(`/agency/${subdomain}/login?redirect=/agency/${subdomain}/dashboard`);
   }
 
   return (

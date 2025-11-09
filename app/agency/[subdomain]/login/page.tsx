@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { getAgencyBySubdomain } from '@/lib/agency';
 import AgencyLoginClient from './login-client';
 
@@ -14,5 +15,9 @@ export default async function AgencyLoginPage({
     notFound();
   }
 
-  return <AgencyLoginClient subdomain={subdomain} agency={agency} />;
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <AgencyLoginClient subdomain={subdomain} agency={agency} />
+    </Suspense>
+  );
 }

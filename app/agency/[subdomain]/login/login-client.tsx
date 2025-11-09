@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Agency } from '@/lib/types';
 
 interface AgencyLoginClientProps {
@@ -11,11 +11,15 @@ interface AgencyLoginClientProps {
 
 export default function AgencyLoginClient({ subdomain, agency }: AgencyLoginClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Get redirect URL from query params
+  const redirectTo = searchParams.get('redirect') || `/agency/${subdomain}/dashboard`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +44,8 @@ export default function AgencyLoginClient({ subdomain, agency }: AgencyLoginClie
         throw new Error(data.error || 'Login failed');
       }
 
-      // Redirect to dashboard
-      router.push(`/agency/${subdomain}/dashboard`);
+      // Redirect to the specified URL or dashboard
+      router.push(redirectTo);
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
@@ -68,7 +72,7 @@ export default function AgencyLoginClient({ subdomain, agency }: AgencyLoginClie
             </h2>
           )}
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access your agency dashboard
+            Sign in to access your agency
           </p>
         </div>
 

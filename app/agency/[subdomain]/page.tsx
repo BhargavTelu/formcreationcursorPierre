@@ -1,5 +1,7 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getAgencyBySubdomain } from '@/lib/agency';
+import { validateAgencySession } from '@/lib/agency-auth';
+import { cookies } from 'next/headers';
 import AgencyForm from '@/components/AgencyForm';
 
 export default async function AgencyPage({
@@ -15,6 +17,22 @@ export default async function AgencyPage({
   // If agency doesn't exist, show 404
   if (!agency) {
     notFound();
+  }
+
+  // Check authentication - form requires login
+  const cookieStore = await cookies();
+  const token = cookieStore.get('agency-session-token')?.value;
+
+  if (!token) {
+    // Redirect to login with return URL
+    redirect(`/agency/${subdomain}/login?redirect=/agency/${subdomain}`);
+  }
+
+  const session = await validateAgencySession(token);
+
+  if (!session.valid || !session.user || session.user.agency_subdomain !== subdomain) {
+    // Invalid session, redirect to login
+    redirect(`/agency/${subdomain}/login?redirect=/agency/${subdomain}`);
   }
 
   return (
