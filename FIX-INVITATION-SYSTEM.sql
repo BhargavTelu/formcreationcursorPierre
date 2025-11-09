@@ -113,9 +113,9 @@ CREATE POLICY "invitations_admin_manage"
   );
 
 -- Allow service role to bypass RLS (this is handled automatically by Supabase)
--- But we need to ensure the table allows it
+-- Regular RLS is sufficient - FORCE RLS can block legitimate queries
 ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.invitations FORCE ROW LEVEL SECURITY;
+-- Note: NOT using FORCE ROW LEVEL SECURITY
 
 -- Step 5: Update profiles RLS policies
 DROP POLICY IF EXISTS "Profiles: users can view own" ON public.profiles;
@@ -143,7 +143,7 @@ CREATE POLICY "profiles_admin_manage"
   );
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;
+-- Note: NOT using FORCE ROW LEVEL SECURITY as it blocks legitimate login queries
 
 -- Step 6: Verify setup
 SELECT 

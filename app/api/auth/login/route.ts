@@ -58,9 +58,21 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (profileError) {
-      console.error('[Auth] Failed to load profile during sign-in', profileError);
+      console.error('[Auth] Failed to load profile during sign-in', {
+        error: profileError,
+        message: profileError?.message,
+        code: profileError?.code,
+        hint: profileError?.hint,
+        details: profileError?.details,
+        userId: data.user.id,
+        userEmail: data.user.email
+      });
       return NextResponse.json(
-        { success: false, error: 'Unable to validate account access.' },
+        { 
+          success: false, 
+          error: 'Unable to validate account access.',
+          details: profileError?.message || 'Profile query failed'
+        },
         { status: 500 }
       );
     }

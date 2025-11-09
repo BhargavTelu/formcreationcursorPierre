@@ -1,0 +1,68 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                    ⚡ URGENT ACTION REQUIRED ⚡                 ║
+║                                                               ║
+║  You MUST run the SQL script in SUPABASE, not in your code!  ║
+╚═══════════════════════════════════════════════════════════════╝
+
+STEP-BY-STEP INSTRUCTIONS:
+==========================
+
+1. Open your web browser
+   
+2. Go to: https://supabase.com/dashboard
+   
+3. Login to your Supabase account
+   
+4. Select your project from the list
+   
+5. On the left sidebar, click: "SQL Editor"
+   
+6. In this folder, open the file: FIX-RECURSION-ISSUE.sql
+   
+7. Copy ALL the text from that file (Ctrl+A, Ctrl+C)
+   
+8. Go back to Supabase SQL Editor
+   
+9. Paste the text (Ctrl+V)
+   
+10. Click the "RUN" button (or press Ctrl+Enter)
+   
+11. Wait for it to finish (should take 2-3 seconds)
+   
+12. You should see output ending with:
+    "✅✅✅ RECURSION FIXED! LOGIN SHOULD WORK NOW!"
+   
+13. Come back to your app and try logging in again
+
+
+IMPORTANT NOTES:
+================
+
+❌ DON'T run it in your terminal
+❌ DON'T run it in VS Code
+❌ DON'T run npm commands
+
+✅ DO run it in Supabase SQL Editor (in your browser)
+✅ DO copy the ENTIRE file contents
+✅ DO click the RUN button in Supabase
+
+
+WHY YOU'RE STILL SEEING THE ERROR:
+===================================
+
+Your database still has the broken RLS policies.
+Restarting your Node.js server (npm run dev) doesn't fix the database.
+You need to update the database by running the SQL script in Supabase.
+
+
+AFTER RUNNING THE SCRIPT:
+==========================
+
+1. Go back to your login page
+2. Try logging in with: bhargavtelu101@gmail.com
+3. Should work! ✅
+
+
+If you're not sure how to access Supabase SQL Editor,
+see the file: HOW-TO-ACCESS-SUPABASE.md
+
