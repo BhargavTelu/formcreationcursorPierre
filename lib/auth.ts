@@ -65,7 +65,11 @@ export async function requireAuthenticatedUser() {
   return session;
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(): Promise<{
+  client: SupabaseAuthedClient;
+  user: User;
+  profile: Profile;
+}> {
   const session = await getSessionWithProfile();
 
   if (!session.user) {
@@ -76,6 +80,10 @@ export async function requireAdmin() {
     throw new ForbiddenError('Administrator privileges required');
   }
 
-  return session;
+  return {
+    client: session.client,
+    user: session.user,
+    profile: session.profile,
+  };
 }
 
