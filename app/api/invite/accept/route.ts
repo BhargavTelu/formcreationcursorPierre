@@ -61,9 +61,18 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (profileError) {
-      console.error('[Invite] Failed to read profile', profileError);
+      console.error('[Invite] Failed to read profile', {
+        error: profileError,
+        message: profileError?.message,
+        code: profileError?.code,
+        email: invitation.email
+      });
       return NextResponse.json(
-        { success: false, error: 'Unable to prepare account.' },
+        { 
+          success: false, 
+          error: 'Unable to prepare account.',
+          details: profileError?.message || 'Profile query failed'
+        },
         { status: 500 }
       );
     }
@@ -107,14 +116,31 @@ export async function POST(request: NextRequest) {
       });
 
       if (createError || !createdUser) {
-        console.error('[Invite] Failed to create user', createError);
+        console.error('[Invite] Failed to create user', {
+          error: createError,
+          message: createError?.message,
+          status: createError?.status,
+          email: invitation.email
+        });
         return NextResponse.json(
-          { success: false, error: 'Unable to create administrator account.' },
+          { 
+            success: false, 
+            error: 'Unable to create administrator account.',
+            details: createError?.message || 'User creation failed'
+          },
           { status: 500 }
         );
       }
 
       createdUserId = createdUser.user?.id ?? null;
+      
+      if (!createdUserId) {
+        console.error('[Invite] User created but no ID returned', { createdUser });
+        return NextResponse.json(
+          { success: false, error: 'User created but invalid response from auth system.' },
+          { status: 500 }
+        );
+      }
     }
 
     if (createdUserId) {
