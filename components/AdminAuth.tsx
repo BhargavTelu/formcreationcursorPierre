@@ -19,28 +19,28 @@ export default function AdminAuth() {
     setUser(user);
   };
 
-  // Sign in
+  // Sign in using API route (secure, server-side)
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
 
-      setUser(data.user);
-      setMessage('Signed in successfully!');
-      
-      // Store tokens in cookies for API calls
-      if (data.session) {
-        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=3600`;
-        document.cookie = `sb-refresh-token=${data.session.refresh_token}; path=/; max-age=604800`;
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Login failed');
       }
+
+      // Redirect to admin dashboard on success
+      window.location.href = '/admin/dashboard';
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -48,18 +48,23 @@ export default function AdminAuth() {
     }
   };
 
-  // Note: Public sign-up removed for security
-  // Only invited users can create accounts via /invite/accept
-
-  // Sign out
+  // Sign out using API route
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setMessage('Signed out');
-    
-    // Clear cookies
-    document.cookie = 'sb-access-token=; path=/; max-age=0';
-    document.cookie = 'sb-refresh-token=; path=/; max-age=0';
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      setUser(null);
+      setMessage('Signed out');
+      
+      // Redirect to login
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+      setMessage('Error signing out');
+    }
   };
 
   // Check user on mount
@@ -135,21 +140,21 @@ export default function AdminAuth() {
           </div>
         )}
 
-            <button
-          type="button"
-          onClick={handleSignIn}
-          disabled={loading}
-          className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {loading ? 'Signing In...' : 'Sign In'}
-        </button>
+        <div>
+          <button
+            type="submit"
+            onClick={handleSignIn}
+            disabled={loading}
+            className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </div>
       </form>
 
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-        <p className="text-xs text-blue-800">
-          <span className="font-semibold">🔒 Admins Only:</span> Don't have an account? Ask an existing administrator to send you an invitation.
-        </p>
-      </div>
+      <p className="mt-4 text-xs text-gray-500 text-center">
+        Admin access only. Contact your administrator for access.
+      </p>
     </div>
   );
 }

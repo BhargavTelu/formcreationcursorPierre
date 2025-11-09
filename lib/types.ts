@@ -1,5 +1,20 @@
 import { z } from 'zod';
 
+// ==================== Profile Types ====================
+
+export type ProfileRole = 'admin' | 'pending_invite';
+
+export interface Profile {
+  id: string;
+  email: string;
+  role: ProfileRole;
+  invited_by: string | null;
+  invited_at: string | null;
+  activated_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // ==================== Agency Types ====================
 
 export interface Agency {

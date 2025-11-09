@@ -282,39 +282,6 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
-  // === ADMIN ROUTE PROTECTION ===
-  // Protect /admin routes (except /admin itself which has its own auth)
-  if (pathname.startsWith('/admin/') && pathname !== '/admin') {
-    // Check if user is authenticated and is admin
-    const { createAuthenticatedSupabaseClient } = await import('./lib/supabase');
-    const supabase = await createAuthenticatedSupabaseClient();
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      // Not authenticated - redirect to admin login
-      const redirectUrl = new URL('/admin', request.url);
-      const res = NextResponse.redirect(redirectUrl);
-      addSecurityHeaders(res);
-      return res;
-    }
-    
-    // Check if user has admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    
-    if (!profile || profile.role !== 'admin') {
-      // Not an admin - redirect to admin login with error
-      const redirectUrl = new URL('/admin', request.url);
-      const res = NextResponse.redirect(redirectUrl);
-      addSecurityHeaders(res);
-      return res;
-    }
-  }
-
   // Bypass /agency routes
   if (pathname.startsWith('/agency/')) {
     const res = NextResponse.next();

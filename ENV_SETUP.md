@@ -11,6 +11,7 @@ These are required for database operations:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=service-role-key-from-supabase
 ```
 
 **How to get these values:**
@@ -18,14 +19,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 2. Click on "Settings" → "API"
 3. Copy the "Project URL" for `NEXT_PUBLIC_SUPABASE_URL`
 4. Copy the "anon/public" key for `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Copy the "service_role" key for `SUPABASE_SERVICE_ROLE_KEY` (keep this secret — server-side only)
 
 ### Application Configuration (REQUIRED)
 
 ```bash
 NEXT_PUBLIC_APP_DOMAIN=finestafrica.ai
+NEXT_PUBLIC_APP_URL=https://www.finestafrica.ai
 ```
 
 This should match your production domain (without www or protocol).
+
+### Email Delivery (Optional but recommended for admin invitations)
+
+```bash
+RESEND_API_KEY=your-resend-api-key
+INVITE_EMAIL_FROM="Finest Africa <admin@finestafrica.ai>"
+BOOTSTRAP_SECRET=super-secure-random-bootstrap-secret
+```
+
+If `RESEND_API_KEY` is unset, the system will still generate invitation links but will instruct admins to copy and send them manually.
 
 ## Optional Environment Variables
 

@@ -7,13 +7,20 @@ This checklist ensures your application is production-ready before deploying to 
 ### Environment Variables
 - [ ] Set `NEXT_PUBLIC_SUPABASE_URL` in Vercel environment variables
 - [ ] Set `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel environment variables
+- [ ] Set `SUPABASE_SERVICE_ROLE_KEY` (server-side only) in Vercel environment variables
+- [ ] Set `BOOTSTRAP_SECRET` for one-time administrator bootstrap route
 - [ ] Set `NEXT_PUBLIC_APP_DOMAIN` to your production domain (e.g., `finestafrica.ai`)
+- [ ] Set `NEXT_PUBLIC_APP_URL` to the canonical HTTPS URL (e.g., `https://www.finestafrica.ai`)
+- [ ] (Recommended) Set `RESEND_API_KEY` to enable automated admin invite emails
+- [ ] (Optional) Set `INVITE_EMAIL_FROM` to control the sender identity
 - [ ] (Optional) Set `UPSTASH_REDIS_REST_URL` for caching
 - [ ] (Optional) Set `UPSTASH_REDIS_REST_TOKEN` for caching
 - [ ] Verify no hardcoded credentials in source code
 
 ### Database Setup
 - [ ] Supabase database tables created (run migration scripts)
+- [ ] Run `supabase-admin-security.sql` to install `profiles`, `invitations`, and triggers
+- [ ] Invoke `/api/bootstrap-admin` once to create the initial administrator, then secure the secret
 - [ ] Row Level Security (RLS) policies enabled on all tables
 - [ ] Test authentication flow in Supabase
 - [ ] Verify agency creation works with proper authentication
@@ -40,6 +47,8 @@ This checklist ensures your application is production-ready before deploying to 
 - [ ] CORS properly configured if needed
 - [ ] Supabase RLS policies tested and working
 - [ ] Admin routes require authentication
+- [ ] Disable public email/password sign-ups in Supabase Auth provider settings
+- [ ] Verify invitation flow creates admins only for pre-approved emails
 
 ### Testing
 - [ ] Test main form submission (predefined routes)

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import slugify from 'slugify';
 import { createAgency, invalidateAgencyCache, getAllAgencies } from '@/lib/agency';
-import { getCurrentUser, createAuthenticatedSupabaseClient } from '@/lib/supabase';
 import { createAgencySchema } from '@/lib/types';
 import type { AgencyApiResponse } from '@/lib/types';
-
-// Force dynamic rendering (API routes need auth/cookies)
-export const dynamic = 'force-dynamic';
+import { requireAdmin } from '@/lib/auth';
 
 /**
  * GET /api/admin/agencies
@@ -14,14 +11,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    await requireAdmin();
 
     const agencies = await getAllAgencies();
 
@@ -44,19 +34,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Create authenticated Supabase client
-    const supabaseClient = await createAuthenticatedSupabaseClient();
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError || !user) {
-      console.error('[API] Authentication error:', authError);
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized. Please sign in to create agencies.' } as AgencyApiResponse,
-        { status: 401 }
-      );
-    }
+    const { client: supabaseClient, user } = await requireAdmin();
 
     console.log('[API] Authenticated user:', user.email, 'ID:', user.id);
 

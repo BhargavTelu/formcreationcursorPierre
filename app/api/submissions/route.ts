@@ -3,9 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 import { formSubmissionSchema, type FormData, type PredefinedRouteData, type TripDesignData } from '@/lib/types';
 import type { FormSubmissionApiResponse } from '@/lib/types';
 
-// Force dynamic rendering (API route accepts POST)
-export const dynamic = 'force-dynamic';
-
 /**
  * Extract mode-specific data based on route preference
  */
