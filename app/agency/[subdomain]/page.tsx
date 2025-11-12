@@ -3,6 +3,7 @@ import { getAgencyBySubdomain } from '@/lib/agency';
 import { validateAgencySession } from '@/lib/agency-auth';
 import { cookies } from 'next/headers';
 import AgencyForm from '@/components/AgencyForm';
+import AgencyNavigation from '@/components/AgencyNavigation';
 
 export default async function AgencyPage({
   params,
@@ -36,16 +37,25 @@ export default async function AgencyPage({
   }
 
   return (
-    <main 
-      className="mx-auto max-w-4xl px-4 py-10"
-      style={{
-        // Set CSS variables for agency branding
-        ['--agency-primary' as any]: agency.primary_color,
-        ['--agency-secondary' as any]: agency.secondary_color,
-      }}
-    >
-      <AgencyForm agency={agency} />
-    </main>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <AgencyNavigation
+        agency={agency}
+        user={session.user}
+        currentPath={`/agency/${subdomain}`}
+      />
+      
+      <main 
+        className="mx-auto max-w-4xl px-4 py-10"
+        style={{
+          // Set CSS variables for agency branding
+          ['--agency-primary' as any]: agency.primary_color,
+          ['--agency-secondary' as any]: agency.secondary_color,
+        }}
+      >
+        <AgencyForm agency={agency} />
+      </main>
+    </div>
   );
 }
 

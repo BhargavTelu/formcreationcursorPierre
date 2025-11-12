@@ -191,6 +191,9 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
           Powered by {agency.name}
         </div>
         <h1 className="text-3xl font-semibold text-gray-800">Travel Planning Form</h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Fill out the form below to plan your travel experience
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
