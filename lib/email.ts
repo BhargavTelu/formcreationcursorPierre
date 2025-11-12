@@ -89,7 +89,9 @@ export async function sendAgencyPasswordResetEmail({
   const resetUrl = `${getAppBaseUrl()}/agency/${agencySubdomain}/reset-password?token=${encodeURIComponent(token)}`;
 
   if (!resendApiKey) {
-    console.warn('[Email] RESEND_API_KEY is not configured. Password reset URL:', resetUrl);
+    console.error('[Email] RESEND_API_KEY is not configured. Cannot send password reset email.');
+    console.warn('[Email] Password reset URL (for manual sharing):', resetUrl);
+    // Return delivered: false but don't throw - let the caller handle it
     return { delivered: false, resetUrl };
   }
 
@@ -116,26 +118,49 @@ export async function sendAgencyPasswordResetEmail({
     </table>
   `;
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: defaultFromAddress,
-      to: [email],
-      subject,
-      html,
-    }),
-  });
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: defaultFromAddress,
+        to: [email],
+        subject,
+        html,
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Email] Failed to send password reset email', response.status, errorText);
-    throw new Error('Failed to dispatch password reset email');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Email] Failed to send password reset email. Status:', response.status);
+      console.error('[Email] Error response:', errorText);
+      
+      // Try to parse error for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('[Email] Error details:', errorJson);
+      } catch {
+        // Not JSON, that's okay
+      }
+      
+      throw new Error(`Failed to send password reset email: ${response.status} ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    console.log('[Email] Password reset email sent successfully. Resend ID:', responseData.id);
+    
+    return { delivered: true, resetUrl };
+  } catch (error) {
+    // If it's already our error, re-throw it
+    if (error instanceof Error && error.message.includes('Failed to send')) {
+      throw error;
+    }
+    // Otherwise wrap it
+    console.error('[Email] Unexpected error sending password reset email:', error);
+    throw new Error(`Failed to send password reset email: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  return { delivered: true, resetUrl };
 }
 

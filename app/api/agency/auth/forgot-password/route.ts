@@ -43,16 +43,28 @@ export async function POST(request: NextRequest) {
       if (tokenResult.success && tokenResult.token) {
         try {
           // Send password reset email
-          await sendAgencyPasswordResetEmail({
+          const emailResult = await sendAgencyPasswordResetEmail({
             email: user.email,
             token: tokenResult.token,
             agencyName: agency.name,
             agencySubdomain: agency.subdomain,
           });
+          
+          if (emailResult.delivered) {
+            console.log('[Agency Auth] Password reset email sent successfully to:', user.email);
+          } else {
+            console.warn('[Agency Auth] Password reset email NOT sent. RESEND_API_KEY may be missing. Reset URL:', emailResult.resetUrl);
+            // In development, log the reset URL so it can be used manually
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[Agency Auth] Development mode - Reset URL for manual use:', emailResult.resetUrl);
+            }
+          }
         } catch (emailError) {
           console.error('[Agency Auth] Failed to send password reset email', emailError);
           // Still return success to prevent information leakage
         }
+      } else {
+        console.error('[Agency Auth] Failed to create password reset token:', tokenResult.error);
       }
     }
 
