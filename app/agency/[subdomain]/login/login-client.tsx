@@ -123,6 +123,18 @@ export default function AgencyLoginClient({ subdomain, agency }: AgencyLoginClie
             </div>
           </div>
 
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <a
+                href={`/agency/${subdomain}/forgot-password`}
+                className="font-medium"
+                style={{ color: primaryColor }}
+              >
+                Forgot your password?
+              </a>
+            </div>
+          </div>
+
           <div>
             <button
               type="submit"

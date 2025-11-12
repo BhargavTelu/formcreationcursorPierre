@@ -114,22 +114,35 @@ export async function POST(request: NextRequest) {
         user.id // Created by admin
       );
 
-      if (userResult.success) {
-        console.log('[API] Agency user created:', userResult.user?.id);
-        // In production, you might want to send the password via email
-        // For now, we'll include it in the response (admin should save it)
-        return NextResponse.json(
-          {
-            success: true,
-            data: result.agency,
-            message: 'Agency created successfully',
-            initial_user: {
-              email,
-              password: initialPassword, // Admin should save this
-            },
-          } as AgencyApiResponse & { initial_user?: { email: string; password: string } },
-          { status: 201 }
-        );
+      if (userResult.success && userResult.user) {
+        console.log('[API] Agency user created:', userResult.user.id);
+        
+        // Send password reset email to the agency owner
+        try {
+          const { createPasswordResetToken } = await import('@/lib/agency-auth');
+          const { sendAgencyPasswordResetEmail } = await import('@/lib/email');
+          
+          // Get IP address and user agent for the reset token
+          const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const userAgent = request.headers.get('user-agent') || undefined;
+          
+          // Create password reset token (valid for 7 days for initial setup)
+          const tokenResult = await createPasswordResetToken(userResult.user.id, 24 * 7, ipAddress, userAgent);
+          
+          if (tokenResult.success && tokenResult.token) {
+            // Send password reset email
+            await sendAgencyPasswordResetEmail({
+              email: userResult.user.email,
+              token: tokenResult.token,
+              agencyName: result.agency.name,
+              agencySubdomain: result.agency.subdomain,
+            });
+            console.log('[API] Password reset email sent to agency owner');
+          }
+        } catch (emailError) {
+          console.error('[API] Failed to send password reset email to agency owner:', emailError);
+          // Don't fail the agency creation if email fails
+        }
       } else {
         console.warn('[API] Agency created but failed to create user:', userResult.error);
         // Still return success, but warn about user creation

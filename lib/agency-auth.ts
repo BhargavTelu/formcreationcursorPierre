@@ -357,3 +357,139 @@ export async function updateAgencyUserPassword(
   return { success: true };
 }
 
+/**
+ * Generate a secure password reset token
+ */
+export function generatePasswordResetToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+/**
+ * Hash a password reset token for storage
+ */
+export function hashPasswordResetToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Create a password reset token for an agency user
+ */
+export async function createPasswordResetToken(
+  userId: string,
+  ttlHours: number = 1, // 1 hour default
+  ipAddress?: string,
+  userAgent?: string
+): Promise<{ success: boolean; token?: string; error?: string }> {
+  const client = createServiceSupabaseClient();
+
+  const token = generatePasswordResetToken();
+  const tokenHash = hashPasswordResetToken(token);
+  const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
+  // Invalidate any existing unused tokens for this user
+  await client
+    .from('agency_password_reset_tokens')
+    .update({ used_at: new Date().toISOString() })
+    .eq('agency_user_id', userId)
+    .is('used_at', null);
+
+  const { error } = await client.from('agency_password_reset_tokens').insert({
+    agency_user_id: userId,
+    token_hash: tokenHash,
+    expires_at: expiresAt.toISOString(),
+    ip_address: ipAddress || null,
+    user_agent: userAgent || null,
+  });
+
+  if (error) {
+    console.error('[Agency Auth] Failed to create password reset token', error);
+    return { success: false, error: 'Failed to create password reset token' };
+  }
+
+  return { success: true, token };
+}
+
+/**
+ * Validate a password reset token
+ */
+export async function validatePasswordResetToken(
+  token: string
+): Promise<{ valid: boolean; userId?: string; error?: string }> {
+  const client = createServiceSupabaseClient();
+
+  const tokenHash = hashPasswordResetToken(token);
+
+  const { data, error } = await client
+    .from('agency_password_reset_tokens')
+    .select('agency_user_id, expires_at, used_at')
+    .eq('token_hash', tokenHash)
+    .is('used_at', null)
+    .single();
+
+  if (error || !data) {
+    return { valid: false, error: 'Invalid or expired reset token' };
+  }
+
+  const tokenData = data as any;
+
+  // Check if token is expired
+  if (new Date(tokenData.expires_at) < new Date()) {
+    return { valid: false, error: 'Reset token has expired' };
+  }
+
+  // Check if token is already used
+  if (tokenData.used_at) {
+    return { valid: false, error: 'Reset token has already been used' };
+  }
+
+  return { valid: true, userId: tokenData.agency_user_id };
+}
+
+/**
+ * Mark a password reset token as used
+ */
+export async function markPasswordResetTokenAsUsed(
+  token: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = createServiceSupabaseClient();
+
+  const tokenHash = hashPasswordResetToken(token);
+
+  const { error } = await client
+    .from('agency_password_reset_tokens')
+    .update({ used_at: new Date().toISOString() })
+    .eq('token_hash', tokenHash)
+    .is('used_at', null);
+
+  if (error) {
+    console.error('[Agency Auth] Failed to mark token as used', error);
+    return { success: false, error: 'Failed to mark token as used' };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Get agency user by email (for password reset)
+ */
+export async function getAgencyUserByEmailForReset(
+  email: string,
+  agencyId: string
+): Promise<AgencyUser | null> {
+  const client = createServiceSupabaseClient();
+
+  const { data, error } = await client
+    .from('agency_users')
+    .select('id, agency_id, email, name, is_active, last_login_at, created_at, updated_at, created_by')
+    .eq('email', email.toLowerCase())
+    .eq('agency_id', agencyId)
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as AgencyUser;
+}
+
