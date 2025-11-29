@@ -11,7 +11,12 @@ export type Hotel = {
   subRegionId?: string;
 };
 
-// export const destinationsData: DestinationNode[] = [
+/**
+ * Historical destination data structure - now loaded from Supabase database
+ * Kept as commented reference for data migration purposes
+ */
+
+// Historical commented data structure:
 //   {
 //     id: 'cape-town',
 //     name: 'Cape Town',

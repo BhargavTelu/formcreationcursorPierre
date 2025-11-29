@@ -6,6 +6,7 @@ import { CheckboxGroup } from '@/components/ui/CheckboxGroup';
 import { DatePicker } from '@/components/ui/DatePicker';
 import DestinationTree from '@/components/DestinationTree';
 import { predefinedRoutes } from '@/lib/data';
+import { generateNext14Months, labelForMonth, rangeLabel, travelLevelTitle } from '@/lib/form-helpers';
 import type { SelectedItem } from '@/components/DestinationTree';
 import type { Agency } from '@/lib/types';
 
@@ -430,47 +431,4 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
     </div>
   );
 }
-
-// Helper functions (same as original)
-function generateNext14Months() {
-  const current = new Date();
-  current.setMonth(current.getMonth() + 1);
-  current.setDate(1);
-  const out: { value: string; label: string }[] = [];
-  for (let i = 0; i < 14; i++) {
-    const monthName = current.toLocaleDateString('en-US', { month: 'short' });
-    const yearShort = current.getFullYear().toString().slice(-2);
-    const value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-    out.push({ value, label: `${monthName} ${yearShort}` });
-    current.setMonth(current.getMonth() + 1);
-  }
-  return out;
-}
-
-function labelForMonth(value: string) {
-  const [y, m] = value.split('-');
-  const d = new Date(Number(y), Number(m) - 1, 1);
-  const monthName = d.toLocaleDateString('en-US', { month: 'short' });
-  return `${monthName} ${String(y).slice(-2)}`;
-}
-
-function rangeLabel(v: NightRange) {
-  switch (v) {
-    case '1-week':
-      return '1 Week';
-    case '10-nights':
-      return '10 Nights';
-    case '14-nights':
-      return '14 Nights';
-    case '21-nights':
-      return '21 Nights';
-  }
-}
-
-function travelLevelTitle(v: 'smart' | 'comfortable' | 'luxury') {
-  if (v === 'smart') return 'Smart';
-  if (v === 'comfortable') return 'Comfortable';
-  return 'Luxury';
-}
-
 
