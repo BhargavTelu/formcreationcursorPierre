@@ -14,7 +14,6 @@ interface InvitationRecord {
 type Message = {
   tone: 'success' | 'error' | 'info';
   text: string;
-  details?: string | null;
 } | null;
 
 export default function AdminInvitePage() {
@@ -73,12 +72,10 @@ export default function AdminInvitePage() {
       setEmail('');
       await loadInvitations();
 
+      // Show success message - never display the invite URL
       setMessage({
-        tone: payload.delivered ? 'success' : 'info',
-        text: payload.delivered
-          ? 'Invitation email sent successfully.'
-          : 'Invitation created. Email service is not configured, share the link manually.',
-        details: payload.inviteUrl ?? null,
+        tone: 'success',
+        text: `Invitation email sent successfully to ${email}.`,
       });
     } catch (error: any) {
       setMessage({ tone: 'error', text: error.message || 'Failed to send invitation.' });
@@ -87,17 +84,6 @@ export default function AdminInvitePage() {
     }
   };
 
-  const copyToClipboard = async (text: string | null | undefined) => {
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setMessage({ tone: 'success', text: 'Invitation link copied to clipboard.' });
-    } catch (error) {
-      console.error('Failed to copy link', error);
-      setMessage({ tone: 'error', text: 'Unable to copy link. Copy manually instead.' });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -142,15 +128,6 @@ export default function AdminInvitePage() {
                 }`}
               >
                 <div>{message.text}</div>
-                {message.details ? (
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(message.details || '')}
-                    className="mt-2 inline-flex items-center gap-1 rounded bg-white px-3 py-1 text-xs font-medium text-emerald-700 shadow-sm ring-1 ring-inset ring-emerald-200 transition hover:bg-emerald-50"
-                  >
-                    Copy Invitation Link
-                  </button>
-                ) : null}
               </div>
             )}
 

@@ -93,11 +93,20 @@ export async function POST(request: NextRequest) {
       invitedBy: inviterEmail,
     });
 
+    // If email was not delivered, throw an error instead of returning the URL
+    if (!result.delivered) {
+      console.error('[Invitations] Email delivery failed - RESEND_API_KEY not configured');
+      return NextResponse.json(
+        { success: false, error: 'Email service is not configured. Please contact your system administrator.' },
+        { status: 500 }
+      );
+    }
+
+    // Only return success if email was delivered - never return the invite URL to the frontend
     return NextResponse.json({
       success: true,
       data,
-      delivered: result.delivered,
-      inviteUrl: result.inviteUrl,
+      delivered: true,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

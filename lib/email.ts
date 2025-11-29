@@ -24,8 +24,9 @@ export async function sendAdminInviteEmail({ email, token, invitedBy }: AdminInv
   const inviteUrl = `${getAppBaseUrl()}/invite/accept?token=${encodeURIComponent(token)}`;
 
   if (!resendApiKey) {
-    console.warn('[Email] RESEND_API_KEY is not configured. Invitation URL:', inviteUrl);
-    return { delivered: false, inviteUrl };
+    console.error('[Email] RESEND_API_KEY is not configured. Cannot send admin invitation email.');
+    // Don't return the URL - throw an error instead
+    return { delivered: false };
   }
 
   const subject = 'Finest Africa Admin Panel Invitation';
@@ -67,10 +68,11 @@ export async function sendAdminInviteEmail({ email, token, invitedBy }: AdminInv
   if (!response.ok) {
     const errorText = await response.text();
     console.error('[Email] Failed to send invitation email', response.status, errorText);
-    throw new Error('Failed to dispatch invitation email');
+    return { delivered: false };
   }
 
-  return { delivered: true, inviteUrl };
+  console.log('[Email] Admin invitation email sent successfully to:', email);
+  return { delivered: true };
 }
 
 interface AgencyPasswordResetEmailOptions {
