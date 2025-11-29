@@ -44,6 +44,66 @@ function extractTravelDates(formData: FormData): {
 }
 
 /**
+ * GET /api/submissions?agency_id=xxx
+ * Fetch form submissions for an agency
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const agency_id = searchParams.get('agency_id');
+
+    if (!agency_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'agency_id parameter is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createServerSupabaseClient();
+
+    // Fetch submissions for this agency, ordered by most recent first
+    const { data, error } = await supabase
+      .from('form_submissions')
+      .select('*')
+      .eq('agency_id', agency_id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[API] Database error fetching submissions:', error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to fetch submissions',
+          message: error.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: data || [],
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('[API] Error fetching submissions:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal server error',
+        message: error.message || 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * POST /api/submissions
  * Store form submission in Supabase
  * Handles both "predefined" and "trip-design" modes
