@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TextInput } from '@/components/ui/TextInput';
 import { RadioGroup } from '@/components/ui/RadioGroup';
 import { CheckboxGroup } from '@/components/ui/CheckboxGroup';
@@ -17,6 +18,8 @@ interface AgencyFormProps {
 }
 
 export default function AgencyForm({ agency }: AgencyFormProps) {
+  const router = useRouter();
+  
   // Q1/Q2
   const [clientName, setClientName] = useState('');
   const [numTravellers, setNumTravellers] = useState<string>('2');
@@ -156,11 +159,8 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
 
       await webhookResponse.json().catch(() => ({}));
 
-      if (routePreference === 'predefined') {
-        alert('Pre-defined route selected successfully! We will contact you with your chosen route details.');
-      } else {
-        alert('Trip design form submitted successfully! We will contact you to plan your custom trip.');
-      }
+      // Redirect to success page instead of showing alert
+      router.push(`/agency/${agency.subdomain}/submission-success?type=${routePreference}`);
     } catch (err) {
       console.error('Error:', err);
       alert('There was an error submitting the form. Please try again.');

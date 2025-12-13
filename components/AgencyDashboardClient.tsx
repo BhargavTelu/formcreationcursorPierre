@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Agency, AgencyUserWithAgency, FormSubmission } from '@/lib/types';
 import AgencyNavigation from '@/components/AgencyNavigation';
 
@@ -12,6 +12,7 @@ interface AgencyDashboardClientProps {
 
 export default function AgencyDashboardClient({ agency, user }: AgencyDashboardClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
@@ -20,12 +21,14 @@ export default function AgencyDashboardClient({ agency, user }: AgencyDashboardC
   const primaryColor = agency.primary_color || '#059669';
   const secondaryColor = agency.secondary_color || '#0ea5e9';
 
-  // Fetch submissions on component mount
+  // Fetch submissions on component mount and when refresh parameter is present
   useEffect(() => {
     async function fetchSubmissions() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/submissions?agency_id=${agency.id}`);
+        const response = await fetch(`/api/submissions?agency_id=${agency.id}`, {
+          cache: 'no-store', // Always fetch fresh data
+        });
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -41,7 +44,13 @@ export default function AgencyDashboardClient({ agency, user }: AgencyDashboardC
     }
 
     fetchSubmissions();
-  }, [agency.id]);
+
+    // If we have a refresh parameter, remove it from the URL
+    if (searchParams.get('refresh')) {
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [agency.id, searchParams]);
 
   const handleViewSubmission = (submission: FormSubmission) => {
     setSelectedSubmission(submission);

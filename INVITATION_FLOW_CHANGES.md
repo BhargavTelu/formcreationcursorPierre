@@ -252,3 +252,7 @@ The invitation system is now more secure by:
 
 This ensures that invitation links can only be accessed by the intended recipient through their email inbox.
 
+
+
+
+
