@@ -26,18 +26,27 @@ export default function AgencyDashboardClient({ agency, user }: AgencyDashboardC
     async function fetchSubmissions() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/submissions?agency_id=${agency.id}`, {
-          cache: 'no-store', // Always fetch fresh data
+        // Add timestamp to bust browser cache
+        const timestamp = Date.now();
+        const response = await fetch(`/api/submissions?agency_id=${agency.id}&_t=${timestamp}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
         });
         const result = await response.json();
 
+        console.log('[Dashboard] Fetched submissions:', result);
+
         if (result.success && result.data) {
           setSubmissions(result.data);
+          console.log('[Dashboard] Submissions count:', result.data.length);
         } else {
-          console.error('Failed to fetch submissions:', result.error);
+          console.error('[Dashboard] Failed to fetch submissions:', result.error);
         }
       } catch (error) {
-        console.error('Error fetching submissions:', error);
+        console.error('[Dashboard] Error fetching submissions:', error);
       } finally {
         setLoading(false);
       }

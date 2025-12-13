@@ -123,7 +123,7 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
     }
 
     try {
-      // First, save to Supabase
+      // First, save to Supabase - THIS MUST SUCCEED
       const submissionResponse = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,33 +133,39 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
         }),
       });
 
-      if (!submissionResponse.ok) {
-        console.error('Failed to save submission to database');
-        // Continue anyway to send webhook
-      } else {
-        const submissionData = await submissionResponse.json();
-        console.log('Form saved to database:', submissionData);
+      const submissionResult = await submissionResponse.json();
+
+      if (!submissionResponse.ok || !submissionResult.success) {
+        console.error('Failed to save submission to database:', submissionResult);
+        alert(`Failed to save submission: ${submissionResult.message || submissionResult.error || 'Unknown error'}. Please try again.`);
+        return; // Don't proceed if database save failed
       }
 
-      // Then send to webhook
-      const webhookResponse = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          agency: {
-            id: agency.id,
-            name: agency.name,
-            subdomain: agency.subdomain,
-          },
-        }),
-      });
+      console.log('Form saved to database:', submissionResult);
 
-      if (!webhookResponse.ok) throw new Error('Network response was not ok');
+      // Then send to webhook (optional - don't block success if this fails)
+      try {
+        const webhookResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            agency: {
+              id: agency.id,
+              name: agency.name,
+              subdomain: agency.subdomain,
+            },
+          }),
+        });
 
-      await webhookResponse.json().catch(() => ({}));
+        if (!webhookResponse.ok) {
+          console.warn('Webhook failed, but submission was saved');
+        }
+      } catch (webhookErr) {
+        console.warn('Webhook error (submission still saved):', webhookErr);
+      }
 
-      // Redirect to success page instead of showing alert
+      // Redirect to success page - only if database save was successful
       router.push(`/agency/${agency.subdomain}/submission-success?type=${routePreference}`);
     } catch (err) {
       console.error('Error:', err);

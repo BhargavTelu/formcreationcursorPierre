@@ -3,6 +3,10 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 import { formSubmissionSchema, type FormData, type PredefinedRouteData, type TripDesignData } from '@/lib/types';
 import type { FormSubmissionApiResponse } from '@/lib/types';
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * Extract mode-specific data based on route preference
  */
@@ -83,12 +87,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Return with no-cache headers
     return NextResponse.json(
       {
         success: true,
         data: data || [],
       },
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     );
   } catch (error: any) {
     console.error('[API] Error fetching submissions:', error);
