@@ -1,51 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
-import { formSubmissionSchema, type FormData, type PredefinedRouteData, type TripDesignData } from '@/lib/types';
+import { formSubmissionSchema } from '@/lib/types';
 import type { FormSubmissionApiResponse } from '@/lib/types';
 
 // Force dynamic rendering - never cache this route
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-/**
- * Extract mode-specific data based on route preference
- */
-function extractModeSpecificData(formData: FormData): Record<string, any> {
-  if (formData.routePreference === 'predefined') {
-    const data = formData as PredefinedRouteData;
-    return {
-      selectedRoute: data.selectedRoute,
-    };
-  } else {
-    const data = formData as TripDesignData;
-    return {
-      nightsPreference: data.nightsPreference || null,
-      golfInfo: data.golfInfo || null,
-      destinations: data.destinations || [],
-      travelLevel: data.travelLevel || null,
-      accommodationType: data.accommodationType || null,
-      generalNotes: data.generalNotes || null,
-    };
-  }
-}
-
-/**
- * Extract travel dates from form data
- */
-function extractTravelDates(formData: FormData): {
-  travel_months: string[] | null;
-  specific_date: string | null;
-} {
-  // Extract month values if present
-  const travel_months = formData.travelMonths && formData.travelMonths.length > 0
-    ? formData.travelMonths.map(m => m.value)
-    : null;
-
-  // Extract specific date if present (convert to DATE format)
-  const specific_date = formData.specificDate || null;
-
-  return { travel_months, specific_date };
-}
 
 /**
  * GET /api/submissions?agency_id=xxx
@@ -156,32 +117,26 @@ export async function POST(request: NextRequest) {
     const num_travellers = parseInt(form_data.numTravellers) || null;
     const route_preference = form_data.routePreference;
 
-    // Extract travel dates
-    const { travel_months, specific_date } = extractTravelDates(form_data);
-
-    // Extract mode-specific data
-    const mode_specific_data = extractModeSpecificData(form_data);
-
     // Create Supabase client
     const supabase = createServerSupabaseClient();
 
-    // Prepare submission data
+    // Prepare submission data - only use columns that exist in the database
+    // All additional data (travel_months, specific_date, mode_specific) is stored in form_data JSONB
     const submissionData = {
       agency_id: agency_id || null,
       client_name,
       num_travellers,
       route_preference,
-      travel_months,
-      specific_date,
-      form_data: form_data as any, // Complete form data
-      mode_specific_data, // Mode-specific fields
+      form_data: form_data as any, // Complete form data (includes everything)
       webhook_sent: false,
     };
 
     console.log('[API] Inserting submission:', {
-      ...submissionData,
-      form_data: '[FORM_DATA]', // Don't log full data
-      mode_specific_data: '[MODE_SPECIFIC]',
+      agency_id: submissionData.agency_id,
+      client_name: submissionData.client_name,
+      num_travellers: submissionData.num_travellers,
+      route_preference: submissionData.route_preference,
+      form_data: '[FORM_DATA]',
     });
 
     // Insert into database

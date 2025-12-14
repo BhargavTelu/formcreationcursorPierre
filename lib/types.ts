@@ -105,15 +105,9 @@ export interface FormSubmission {
   client_name: string;
   num_travellers: number | null;
   route_preference: 'predefined' | 'trip-design';
-  travel_months: string[] | null;
-  specific_date: string | null;
-  form_data: Record<string, any>; // Complete form data
-  mode_specific_data: Record<string, any> | null; // Mode-specific fields
+  form_data: Record<string, any>; // Complete form data (includes travel_months, specific_date, etc.)
   webhook_sent: boolean;
-  webhook_sent_at: string | null;
-  webhook_response: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 // Common form data (present in both modes)
