@@ -643,7 +643,41 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
               style={{ marginTop: columnOffsets[depth] || 0 }}
             >
             <div className="text-sm font-semibold text-gray-700 mb-2">
-              {depth === 0 ? 'Main Regions' : depth === 1 ? 'Sub-Regions' : depth === 2 ? 'Hotels' : 'More'}
+              {(() => {
+                if (depth === 0) return 'Main Regions';
+                
+                // Get the parent region for this column
+                const parentRegionId = activePath[depth - 1];
+                const parentRegion = parentRegionId ? nodeIndex[parentRegionId] : null;
+                const parentName = parentRegion?.name?.toLowerCase() || '';
+                
+                // Get root region for deeper checks
+                const rootRegionId = activePath[0];
+                const rootRegion = rootRegionId ? nodeIndex[rootRegionId] : null;
+                const rootName = rootRegion?.name?.toLowerCase() || '';
+                
+                // For depth 1: Check parent region or if all items are hotels
+                if (depth === 1) {
+                  // Specific regions that have hotels directly (no sub-regions)
+                  if (parentName.includes('oudtshoorn')) return 'Hotels';
+                  
+                  // Check if all items are hotels
+                  const allHotels = items.length > 0 && items.every(item => item.isHotel);
+                  if (allHotels) return 'Hotels';
+                  
+                  return 'Sub-Regions';
+                }
+                
+                // For depth 2+: Check the root region to determine appropriate heading
+                if (depth >= 2) {
+                  if (rootName.includes('golf')) return 'Golfs';
+                  if (rootName.includes('safari')) return 'Safaris';
+                  if (rootName.includes('wine')) return 'Wines';
+                  return 'Hotels';
+                }
+                
+                return 'More';
+              })()}
             </div>
             <div className="space-y-3">
               {items.map((node) => {
