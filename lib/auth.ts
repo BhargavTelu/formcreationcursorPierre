@@ -55,16 +55,6 @@ export async function getSessionWithProfile(): Promise<SessionProfileResult> {
   return { client, user, profile };
 }
 
-export async function requireAuthenticatedUser() {
-  const session = await getSessionWithProfile();
-
-  if (!session.user) {
-    throw new UnauthorizedError();
-  }
-
-  return session;
-}
-
 export async function requireAdmin(): Promise<{
   client: SupabaseAuthedClient;
   user: User;

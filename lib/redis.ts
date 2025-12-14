@@ -79,25 +79,6 @@ export async function deleteCached(key: string): Promise<boolean> {
   }
 }
 
-/**
- * Delete multiple keys matching a pattern
- */
-export async function deleteCachedPattern(pattern: string): Promise<boolean> {
-  const client = getRedisClient();
-  if (!client) return false;
-
-  try {
-    // Note: Upstash Redis doesn't support KEYS command in the same way
-    // For patterns, we'll need to track keys manually or use a different approach
-    // For now, we'll just delete individual keys
-    console.warn('Pattern deletion not fully supported, consider manual key tracking');
-    return true;
-  } catch (error) {
-    console.error('Redis pattern delete error:', error);
-    return false;
-  }
-}
-
 // Export cache key generators
 export const cacheKeys = CACHE_KEYS;
 export const cacheTTL = CACHE_TTL;

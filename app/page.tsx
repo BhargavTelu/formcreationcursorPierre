@@ -128,9 +128,6 @@ export default function Page() {
       if (!submissionResponse.ok) {
         console.error('Failed to save submission to database');
         // Continue anyway to send webhook
-      } else {
-        const submissionData = await submissionResponse.json();
-        console.log('Form saved to database:', submissionData);
       }
 
       // Then send to webhook
@@ -153,8 +150,6 @@ export default function Page() {
       console.error('Error:', err);
       alert('There was an error submitting the form. Please try again.');
     }
-
-    console.log('Form Data:', formData);
   };
 
   const canSubmit = useMemo(() => {

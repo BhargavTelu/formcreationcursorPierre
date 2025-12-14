@@ -257,31 +257,6 @@ export default function DestinationTree({ value, onChange }: DestinationTreeProp
   };
 
   // Measure and align columns so that column[d] top aligns with selected item in column[d-1]
-  // useLayoutEffect(() => {
-  //   const offsets: number[] = [];
-  //   for (let depth = 1; depth < columns.length; depth++) {
-  //     const parentDepth = depth - 1;
-  //     const parentId = activePath[parentDepth];
-  //     const parentBtn = parentId ? itemRefs.current[parentDepth]?.[parentId] : null;
-  //     const parentCol = columnRefs.current[parentDepth];
-  //     const thisCol = columnRefs.current[depth];
-  //     if (parentBtn && parentCol && thisCol) {
-  //       const parentRect = parentBtn.getBoundingClientRect();
-  //       const parentColRect = parentCol.getBoundingClientRect();
-  //       const offset = Math.max(0, parentRect.top - parentColRect.top);
-  //       offsets[depth] = offset;
-  //     } else {
-  //       offsets[depth] = 0;
-  //     }
-  //   }
-  //   setColumnOffsets(offsets);
-    
-  //   // Trigger measurement after offsets are set
-  //   setTimeout(() => setMeasurementTrigger(prev => prev + 1), 0);
-  // }, [columns.length, activePath, query]);
-
-
-  // Measure and align columns so that column[d] top aligns with selected item in column[d-1]
   useLayoutEffect(() => {
     const offsets: number[] = [0]; // First column always has 0 offset
     

@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   const { user, profile } = await getSessionWithProfile();
 
   if (!user || !profile || profile.role !== 'admin') {
-    redirect('/admin/sign-in');
+    redirect('/login');
   }
 
   return <>{children}</>;

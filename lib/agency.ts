@@ -208,36 +208,4 @@ export async function createAgency(
   }
 }
 
-/**
- * Update an agency
- */
-export async function updateAgency(
-  subdomain: string,
-  updates: Partial<Pick<Agency, 'name' | 'logo_url' | 'primary_color' | 'secondary_color'>>
-): Promise<{ success: boolean; agency?: Agency; error?: string }> {
-  const normalizedSubdomain = subdomain.toLowerCase().trim();
-
-  try {
-    const { data, error } = await supabase
-      .from('agencies')
-      .update(updates)
-      .eq('subdomain', normalizedSubdomain)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const agency = data as Agency;
-
-    // Invalidate and refresh cache
-    await invalidateAgencyCache(normalizedSubdomain);
-    await cacheAgency(normalizedSubdomain, agency);
-
-    return { success: true, agency };
-  } catch (error) {
-    console.error('[Agency] Error updating agency:', error);
-    return { success: false, error: 'Failed to update agency' };
-  }
-}
-
 

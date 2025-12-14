@@ -37,11 +37,8 @@ export default function AgencyDashboardClient({ agency, user }: AgencyDashboardC
         });
         const result = await response.json();
 
-        console.log('[Dashboard] Fetched submissions:', result);
-
         if (result.success && result.data) {
           setSubmissions(result.data);
-          console.log('[Dashboard] Submissions count:', result.data.length);
         } else {
           console.error('[Dashboard] Failed to fetch submissions:', result.error);
         }

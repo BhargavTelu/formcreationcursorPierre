@@ -100,28 +100,6 @@ export async function getAgencyUserPasswordHash(
 }
 
 /**
- * Get agency user with agency information
- */
-export async function getAgencyUserWithAgency(
-  email: string,
-  agencyId: string
-): Promise<AgencyUserWithAgency | null> {
-  const client = createServiceSupabaseClient();
-
-  const { data, error } = await client.rpc('get_agency_user_with_agency', {
-    p_user_email: email.toLowerCase(),
-    p_agency_id: agencyId,
-  });
-
-  if (error || !data || (Array.isArray(data) && data.length === 0)) {
-    return null;
-  }
-
-  const result = Array.isArray(data) ? data[0] : data;
-  return result as AgencyUserWithAgency;
-}
-
-/**
  * Create a new agency user (one per agency)
  */
 export async function createAgencyUser(

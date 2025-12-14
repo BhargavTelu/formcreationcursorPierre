@@ -37,22 +37,9 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     const { email, password, secret } = bootstrapSchema.parse(payload);
 
-    console.log('[Bootstrap] Received secret:', secret);
-    console.log('[Bootstrap] Expected secret:', BOOTSTRAP_SECRET);
-    console.log('[Bootstrap] Secrets match:', secret === BOOTSTRAP_SECRET);
-
     if (secret !== BOOTSTRAP_SECRET) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid bootstrap secret.',
-          debug: {
-            receivedLength: secret.length,
-            expectedLength: BOOTSTRAP_SECRET?.length || 0,
-            receivedFirst10: secret.substring(0, 10),
-            expectedFirst10: BOOTSTRAP_SECRET?.substring(0, 10) || 'N/A'
-          }
-        },
+        { success: false, error: 'Invalid bootstrap secret.' },
         { status: 401 }
       );
     }
@@ -65,11 +52,6 @@ export async function POST(request: NextRequest) {
     }
 
     const client = createServiceSupabaseClient();
-
-    console.log('[Bootstrap] Attempting to create user with service role key...');
-    console.log('[Bootstrap] Email:', email);
-    console.log('[Bootstrap] Service key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    console.log('[Bootstrap] Service key starts with:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20));
 
     // Create user WITHOUT email confirmation to bypass potential trigger issues
     const { data: createdUser, error: createError } = await client.auth.admin.createUser({
@@ -111,13 +93,9 @@ export async function POST(request: NextRequest) {
 
     const userId = createdUser.user.id;
 
-    console.log('[Bootstrap] User created successfully. ID:', userId);
-    console.log('[Bootstrap] Waiting 1 second for trigger to complete...');
-    
     // Wait for trigger to complete
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    console.log('[Bootstrap] Checking if profile was auto-created by trigger...');
     const { data: existingProfile } = await client
       .from('profiles')
       .select('id, role')
@@ -125,11 +103,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingProfile) {
-      console.log('[Bootstrap] Profile auto-created by trigger:', existingProfile);
-      
       // Update it to admin if it's not already
       if (existingProfile.role !== 'admin') {
-        console.log('[Bootstrap] Updating profile role to admin...');
         const { error: updateError } = await client
           .from('profiles')
           .update({ 
@@ -140,13 +115,9 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('[Bootstrap] Failed to update profile to admin:', updateError);
-        } else {
-          console.log('[Bootstrap] Profile updated to admin successfully');
         }
       }
     } else {
-      console.log('[Bootstrap] No profile created by trigger. Creating manually...');
-      
       // Trigger didn't create profile, create it manually
       const { error: profileError } = await client
         .from('profiles')
@@ -166,11 +137,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      
-      console.log('[Bootstrap] Profile created manually');
     }
-
-    console.log(`First admin created: ${email}`);
 
     return NextResponse.json({
       success: true,

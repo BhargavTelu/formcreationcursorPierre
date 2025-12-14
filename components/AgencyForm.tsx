@@ -141,8 +141,6 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
         return; // Don't proceed if database save failed
       }
 
-      console.log('Form saved to database:', submissionResult);
-
       // Then send to webhook (optional - don't block success if this fails)
       try {
         const webhookResponse = await fetch(webhookUrl, {
@@ -171,8 +169,6 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
       console.error('Error:', err);
       alert('There was an error submitting the form. Please try again.');
     }
-
-    console.log('Form Data:', formData);
   };
 
   const canSubmit = useMemo(() => {

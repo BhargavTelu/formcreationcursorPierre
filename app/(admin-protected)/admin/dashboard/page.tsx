@@ -152,7 +152,7 @@ export default function AdminDashboardPage() {
         throw new Error(data.error || 'Failed to sign out');
       }
 
-      router.push('/admin/sign-in');
+      router.push('/login');
       router.refresh();
     } catch (error: any) {
       setMessage(`Error: ${error.message || 'Sign out failed'}`);

@@ -77,21 +77,6 @@ export function createServiceSupabaseClient() {
   });
 }
 
-/**
- * Get the current authenticated user from the request
- * NOTE: Only call this from Server Components or API routes
- */
-export async function getCurrentUser() {
-  const client = await createAuthenticatedSupabaseClient();
-  const { data: { user }, error } = await client.auth.getUser();
-
-  if (error || !user) {
-    return null;
-  }
-
-  return user;
-}
-
 // Types for our Supabase tables
 export interface Destination {
   id: string;
