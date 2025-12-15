@@ -1,331 +1,247 @@
-# Finest Africa - Form Creation & Admin System
+# Finest Africa – Travel Planning Form + Admin/Agency Portal
 
-A Next.js application for managing travel submissions and admin invitations with Supabase backend.
+This repository is a **Next.js 14 (App Router)** application that powers:
 
----
+- A **public travel planning form** (`/`) that stores submissions in Supabase and triggers an external automation webhook.
+- An **admin portal** for managing agencies and inviting admins (Supabase Auth + `profiles` / `invitations` tables).
+- An **agency portal** (per subdomain) with its own login/session system and a dashboard to review submissions.
 
-## 🚀 Quick Start
+The application is designed around **subdomain-based routing**: requests to `https://{agency-subdomain}.{domain}` are rewritten to the agency pages under `/agency/[subdomain]` by `middleware.ts`.
+
+## Core features
+
+- **Public travel planning form**
+  - Collects trip preferences (route type, months/date, destinations/hotels, etc.).
+  - Persists the submission to `form_submissions` via `POST /api/submissions`.
+  - Forwards the payload to an external workflow engine via `POST /api/webhooks/n8n`.
+
+- **Admin portal**
+  - **Admin login** at `/login` via `POST /api/auth/login` (Supabase Auth).
+  - **Agency management** at `/admin/dashboard` via `GET/POST /api/admin/agencies`.
+  - **Admin invitations** at `/admin/invite` via `POST /api/admin/invite` (tokenized invite emails).
+  - **Invite accept** UI at `/invite/accept?token=...` which activates admin access and signs in.
+
+- **Agency portal (per agency)**
+  - Agency login at `/agency/[subdomain]/login` via `POST /api/agency/auth/login`.
+  - Agency dashboard at `/agency/[subdomain]/dashboard` that loads submissions via `GET /api/submissions?agency_id=...`.
+  - Forgot/reset password flow for agency users (`/agency/[subdomain]/forgot-password`, `/reset-password`).
+  - Submission success screen (`/agency/[subdomain]/submission-success`).
+
+## Tech stack
+
+- **Next.js 14.2** (App Router, Route Handlers)
+- **React 18**
+- **TypeScript**
+- **Tailwind CSS**
+- **Supabase**
+  - Supabase Auth (admins)
+  - Postgres tables for agencies, submissions, and agency auth
+- **Upstash Redis** (optional caching for agency lookup)
+- **Resend** (optional email delivery for admin invites and agency password resets)
+- **zod** for runtime validation in API routes
+
+## Runtime architecture & data flow (high level)
+
+### Subdomain routing
+
+`middleware.ts` inspects the `Host` header:
+
+- If the request is to the **main domain** (or `www`) → it is not rewritten.
+- If the request is to `subdomain.{NEXT_PUBLIC_APP_DOMAIN}` (or `subdomain.localhost` in dev) → it:
+  - looks up the agency via `lib/agency.getAgencyBySubdomain()`
+  - rewrites the request to `/agency/{subdomain}{pathname}`
+  - attaches `x-agency-*` headers for debugging/observability
+
+### Admin authentication (Supabase Auth)
+
+- `POST /api/auth/login` validates credentials using Supabase Auth.
+- It then verifies the user is an **admin** by querying `public.profiles` and checking `role === 'admin'`.
+- Session tokens are stored as **HTTP-only cookies**:
+  - `sb-access-token`
+  - `sb-refresh-token`
+- Server components and API routes enforce access via `lib/auth.requireAdmin()`.
+
+### Admin invitations
+
+- `POST /api/admin/invite`:
+  - generates a random token (`lib/invitations`)
+  - stores **only the token hash** in `public.invitations`
+  - sends an email via `lib/email.sendAdminInviteEmail()` (Resend)
+- `/invite/accept`:
+  - `GET /api/invite/validate` validates token hash + status + expiry
+  - `POST /api/invite/accept` creates/updates the Supabase Auth user and upgrades `public.profiles.role` to `admin`
+  - sets `sb-access-token` / `sb-refresh-token` cookies for immediate login
+
+### Agency authentication (custom tables)
+
+Agency users are **not** Supabase Auth users. They live in:
+
+- `public.agency_users` (one active user per agency)
+- `public.agency_sessions` (server-issued session tokens)
+- `public.agency_password_reset_tokens` (one-time reset tokens)
+
+Login flow:
+
+- `POST /api/agency/auth/login` verifies credentials against `agency_users.password_hash`
+  - New hashes are **bcrypt**
+  - Legacy SHA-256 hashes are still accepted and upgraded to bcrypt on successful login
+- On success, a random session token is created and stored **hashed** in `agency_sessions`
+- The raw token is stored in an **HTTP-only cookie**: `agency-session-token`
+- Server components validate it via `lib/agency-auth.validateAgencySession()`
+
+### Submissions
+
+- `POST /api/submissions` stores the submission in `public.form_submissions`
+  - core fields are copied into columns (e.g. `client_name`, `route_preference`)
+  - all remaining data is stored in `form_data` JSON
+- `GET /api/submissions?agency_id=...` lists submissions for an agency
+
+### Webhook forwarding
+
+Client code never calls the external webhook directly. Instead it posts to:
+
+- `POST /api/webhooks/n8n`
+
+This route chooses which webhook URL to call based on `routePreference` and forwards the payload server-side, keeping webhook URLs out of the browser bundle.
+
+## Folder structure
+
+```
+formcreation/
+├── app/                          # Next.js App Router pages + route handlers
+│   ├── (admin-protected)/admin/  # Admin-only UI (guarded in layout.tsx)
+│   ├── agency/[subdomain]/       # Agency portal pages (login, form, dashboard)
+│   ├── api/                      # Route Handlers (admin/auth/agency/submissions/webhooks)
+│   ├── invite/accept/            # Admin invite acceptance page
+│   └── login/                    # Admin login page
+├── components/                   # Client components (forms, dashboards, UI)
+├── lib/                          # Supabase, auth helpers, email, caching, types
+├── scripts/                      # Helper scripts (local/dev ops)
+├── *.sql                         # Supabase SQL scripts used to create required tables/policies
+└── middleware.ts                 # Subdomain rewrite + security headers
+```
+
+## Setup & installation
 
 ### Prerequisites
-- Node.js 18+ and npm
-- Supabase account
-- (Optional) Resend account for email invitations
 
-### Installation
+- Node.js 18+
+- A Supabase project (Postgres + Auth enabled)
+- Optional: Resend account for email delivery
+- Optional: Upstash Redis for caching agency lookups
+
+### Install dependencies
 
 ```bash
-# 1. Install dependencies
 npm install
+```
 
-# 2. Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your credentials
+### Configure environment variables
 
-# 3. Run database setup
-# Go to Supabase Dashboard → SQL Editor
-# Run: supabase-admin-security.sql
+Create `.env.local` (not committed) with the variables used by this repository:
 
-# 4. Start development server
+```env
+# Supabase (required)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Domain / URL configuration (recommended)
+NEXT_PUBLIC_APP_DOMAIN=finestafrica.ai
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_URL=http://localhost:3000
+
+# Webhook forwarding (required if you expect webhook delivery)
+N8N_WEBHOOK_PREDEFINED_URL=
+N8N_WEBHOOK_TRIP_DESIGN_URL=
+
+# Email delivery (optional)
+RESEND_API_KEY=
+INVITE_EMAIL_FROM=Finest Africa <admin@finestafrica.ai>
+
+# Optional caching (Upstash Redis)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# Optional: one-time bootstrap admin endpoint
+BOOTSTRAP_SECRET=
+```
+
+### Database setup (Supabase SQL Editor)
+
+This repository includes SQL scripts for:
+
+- **Admin + invitation system**: `supabase-admin-security.sql`
+  - creates `public.profiles` + `public.invitations`
+  - adds trigger `handle_new_user()` on `auth.users` inserts
+  - enables RLS and policies for admin management
+
+- **Agency authentication system**: `agency-auth-complete.sql`
+  - creates `public.agency_users`, `public.agency_sessions`, `public.agency_password_reset_tokens`
+  - enables RLS (service-role policies for server operations)
+
+Run (in Supabase SQL editor) in this order:
+
+1. `supabase-admin-security.sql`
+2. `agency-auth-complete.sql`
+
+### Important: additional tables required
+
+The application code also depends on tables that are **not created by the SQL scripts in this repository**:
+
+- `public.agencies` (used by `lib/agency` and admin agency creation)
+- `public.form_submissions` (used by `app/api/submissions`)
+- `public.destinations` and `public.hotels` (used by `components/DestinationTree` via the client-side Supabase SDK)
+
+If your Supabase project does not already have these tables, the app will fail at runtime (e.g. agency lookup, submissions, destination selector). This repository currently does not ship migrations for those tables.
+
+## Running locally
+
+```bash
 npm run dev
 ```
 
-Visit: `http://localhost:3000`
+- Main app: `http://localhost:3000`
+- Simulated subdomains on localhost:
+  - `http://{subdomain}.localhost:3000` → rewritten to `/agency/{subdomain}`
 
----
+## Helper scripts
 
-## 📁 Project Structure
+### Create the first admin
 
-```
-formcreationcursor/
-├── app/                          # Next.js app directory
-│   ├── (admin-protected)/       # Protected admin routes
-│   │   └── admin/
-│   │       ├── dashboard/       # Admin dashboard
-│   │       ├── invite/          # Send invitations
-│   │       └── layout.tsx       # Admin layout with auth
-│   ├── (public-admin)/          # Public admin routes
-│   │   └── admin/sign-in/       # Admin sign-in page
-│   ├── agency/[subdomain]/      # Agency-specific pages
-│   ├── api/                     # API routes
-│   │   ├── admin/              # Admin management APIs
-│   │   ├── auth/               # Authentication APIs
-│   │   └── invite/             # Invitation APIs
-│   ├── invite/accept/          # Accept invitation page
-│   └── login/                  # Login page
-├── components/                  # React components
-│   ├── ui/                     # UI components
-│   ├── AcceptInviteForm.tsx   # Invitation acceptance
-│   ├── AdminAuth.tsx          # Admin authentication
-│   ├── AgencyForm.tsx         # Agency form
-│   └── ...
-├── lib/                        # Utility libraries
-│   ├── auth.ts                # Authentication helpers
-│   ├── email.ts               # Email sending
-│   ├── invitations.ts         # Invitation utilities
-│   └── supabase.ts            # Supabase client
-├── scripts/                    # Utility scripts
-├── supabase-admin-security.sql # Initial DB setup
-├── FINAL-FIX.sql              # Login system fix
-└── FIX-INVITATION-TRIGGER.sql # Invitation system fix
-```
+There are two supported approaches:
 
----
+- **Bootstrap API route**: `POST /api/bootstrap-admin` (requires `BOOTSTRAP_SECRET`)
+- **Node script**: `scripts/setup-super-admin.js` (requires env vars)
 
-## 🔐 Authentication & Authorization
+For the script, set:
 
-### Admin Authentication Flow
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPER_ADMIN_EMAIL`
+- `SUPER_ADMIN_PASSWORD`
 
-```
-1. Admin logs in → /login
-2. Credentials verified → Supabase Auth
-3. Profile checked → Must have role='admin'
-4. Session created → Cookies set
-5. Redirected → /admin/dashboard
-```
-
-### Invitation System Flow
-
-```
-1. Admin sends invite → Creates invitation record + sends email
-2. User clicks link → /invite/accept?token=xxx
-3. User sets password → Creates auth.users record
-4. Trigger fires → Creates admin profile automatically
-5. User logged in → Redirected to dashboard
-```
-
----
-
-## 🗄️ Database Schema
-
-### Key Tables
-
-**`public.profiles`**
-- Stores admin user profiles
-- `role`: 'admin' or 'pending_invite'
-- RLS policies ensure users can only see own data
-
-**`public.invitations`**
-- Stores invitation records
-- `status`: 'pending', 'accepted', 'expired', or 'revoked'
-- Token hashed for security
-
-**`auth.users`** (Supabase managed)
-- User authentication records
-- Managed by Supabase Auth
-
-### Database Triggers
-
-**`handle_new_user()`**
-- Fires when new user created
-- Checks for pending invitation
-- Creates appropriate profile (admin or pending_invite)
-
-**`is_admin()`**
-- Helper function for RLS policies
-- Prevents infinite recursion
-- Uses SECURITY DEFINER
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Required in `.env.local`:
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...  # Required for admin operations
-
-# Optional: Email Configuration
-RESEND_API_KEY=re_...  # For sending invitation emails
-INVITE_EMAIL_FROM=Admin <admin@finestafrica.ai>
-
-# Optional: Custom App URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000  # Auto-detected in dev
-```
-
-### Supabase Setup
-
-1. **Enable Email Provider**
-   - Go to Authentication → Providers
-   - Enable Email provider
-   - Disable "Confirm email" (handled programmatically)
-
-2. **Run SQL Scripts** (in order)
-   ```sql
-   -- 1. Initial setup
-   supabase-admin-security.sql
-
-   -- 2. Fix login system (if needed)
-   FINAL-FIX.sql
-
-   -- 3. Fix invitation system (if needed)
-   FIX-INVITATION-TRIGGER.sql
-   ```
-
----
-
-## 🎯 Key Features
-
-### Admin Dashboard
-- View and manage submissions
-- Invite new administrators
-- Manage agencies
-
-### Invitation System
-- Secure token-based invitations
-- Email delivery (optional)
-- 48-hour expiration
-- One-time use tokens
-
-### Agency Management
-- Subdomain-based routing
-- Custom agency pages
-- Form submissions
-
----
-
-## 🐛 Troubleshooting
-
-### Login Issues
-
-**Error**: "Unable to validate account access"
-
-**Solution**:
-1. Run `FINAL-FIX.sql` in Supabase SQL Editor
-2. Restart dev server
-3. Try logging in again
-
-### Invitation Issues
-
-**Error**: "Unable to create administrator account"
-
-**Solution**:
-1. Check SUPABASE_SERVICE_ROLE_KEY is set
-2. Run `FIX-INVITATION-TRIGGER.sql` in Supabase
-3. Restart dev server
-4. Send fresh invitation
-
-### Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| Wrong invitation URL domain | Check NEXT_PUBLIC_APP_URL in .env.local |
-| Infinite recursion error | Run FINAL-FIX.sql |
-| User exists but no profile | Run FIX-INVITATION-TRIGGER.sql |
-| RLS policy errors | Verify policies with diagnostic scripts |
-
----
-
-## 📚 Additional Documentation
-
-- **ENV_SETUP.md** - Environment setup guide
-- **SETUP.md** - Detailed setup instructions
-- **TESTING.md** - Testing guide
-- **PRODUCTION_CHECKLIST.md** - Pre-deployment checklist
-- **SUBDOMAIN_SETUP.md** - Subdomain configuration
-- **DESTINATION_TREE_README.md** - Destination tree component
-
----
-
-## 🛠️ Development
-
-### Available Scripts
+Then run:
 
 ```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run start    # Start production server
-npm run lint     # Run linter
+node scripts/setup-super-admin.js
 ```
 
-### Database Scripts
+### Create test agencies (optional)
 
-Located in project root:
+`scripts/create-test-agencies.js` posts to `POST /api/admin/agencies`. It assumes you’re already authenticated as an admin (it does not inject cookies automatically).
 
-- **`supabase-admin-security.sql`** - Initial database setup
-- **`FINAL-FIX.sql`** - Login system RLS policies
-- **`FIX-INVITATION-TRIGGER.sql`** - Invitation trigger setup
+## Security notes
 
-### Helper Scripts
+- **No `.env` files are tracked by git** (`.gitignore` excludes `.env*`).
+- **Webhook URLs are server-only** via `/api/webhooks/n8n` and the `N8N_WEBHOOK_*` env vars.
+- **Supabase service role key must never be exposed to the browser**. It is used only in server route handlers.
+- **Agency passwords** are stored as bcrypt hashes; legacy SHA-256 hashes (if any) are accepted and upgraded on login.
 
-Located in `/scripts`:
+## Production readiness notes
 
-- **`setup-super-admin.js`** - Create initial super admin
-- **`create-test-agencies.js`** - Create test data
-
----
-
-## 🔒 Security
-
-### Best Practices
-
-1. **Environment Variables**
-   - Never commit `.env.local`
-   - Keep service role key secure
-   - Rotate keys periodically
-
-2. **Database Security**
-   - RLS policies enforced on all tables
-   - Service role bypasses RLS (admin operations only)
-   - Passwords hashed by Supabase
-
-3. **Invitation Security**
-   - Tokens hashed in database
-   - 48-hour expiration
-   - One-time use only
-   - Email validation
-
----
-
-## 🚀 Deployment
-
-### Pre-Deployment Checklist
-
-- [ ] Run all database scripts in production Supabase
-- [ ] Set all environment variables
-- [ ] Test login system
-- [ ] Test invitation system
-- [ ] Configure custom domain (if applicable)
-- [ ] Set up email service (Resend)
-- [ ] Review RLS policies
-- [ ] Test with production data
-
-See **PRODUCTION_CHECKLIST.md** for detailed checklist.
-
----
-
-## 📝 License
-
-[Your License Here]
-
----
-
-## 🤝 Support
-
-For issues or questions:
-1. Check troubleshooting section above
-2. Review documentation files
-3. Check Supabase dashboard for errors
-4. Review server logs
-
----
-
-## 🔄 Recent Changes
-
-- ✅ Fixed infinite recursion in RLS policies
-- ✅ Fixed invitation URL generation for development
-- ✅ Enhanced error logging for debugging
-- ✅ Cleaned up duplicate files and components
-- ✅ Consolidated documentation
-
----
-
-**Version**: 1.0.0  
-**Last Updated**: 2025-11-09
-
-
+- Set `NEXT_PUBLIC_APP_DOMAIN` to your apex domain (used by `middleware.ts` for subdomain validation).
+- Set `NEXT_PUBLIC_APP_URL` / `APP_URL` to the canonical base URL (used for invitation/reset links).
+- Cookies are marked `secure` automatically when `NODE_ENV === 'production'`.
+- Upstash Redis is optional; if not configured, agency lookups fall back to DB without caching.
 

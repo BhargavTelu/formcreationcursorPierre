@@ -1,21 +1,41 @@
 import { createServiceSupabaseClient, SUPABASE_URL } from './supabase';
 import type { AgencyUser, AgencyUserWithAgency } from './types';
 import { createHash, randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 /**
- * Hash a password using SHA-256 (for agency users)
- * In production, consider using bcrypt or Argon2
+ * Password hashing for agency users.
+ *
+ * New hashes use bcrypt.
+ * Legacy hashes (existing rows) may be unsalted SHA-256 hex and are supported for verification
+ * with optional upgrade-on-login (implemented in the login route).
  */
 export function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
+  // bcryptjs is pure JS and works in Next.js server runtime.
+  // 12 rounds is a reasonable default for most Node deployments.
+  return bcrypt.hashSync(password, 12);
 }
 
 /**
  * Verify a password against a hash
  */
 export function verifyPassword(password: string, hash: string): boolean {
-  const passwordHash = hashPassword(password);
-  return passwordHash === hash;
+  // bcrypt hashes typically start with $2a$ / $2b$ / $2y$
+  if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
+    return bcrypt.compareSync(password, hash);
+  }
+
+  // Legacy: unsalted SHA-256 hex (64 chars). Keep compatibility for existing rows.
+  if (/^[a-f0-9]{64}$/i.test(hash)) {
+    const legacyHash = createHash('sha256').update(password).digest('hex');
+    return legacyHash === hash;
+  }
+
+  return false;
+}
+
+export function isLegacySha256PasswordHash(hash: string): boolean {
+  return /^[a-f0-9]{64}$/i.test(hash);
 }
 
 /**

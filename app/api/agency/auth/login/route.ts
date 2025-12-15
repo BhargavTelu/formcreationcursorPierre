@@ -6,8 +6,11 @@ import {
   getAgencyUserByEmail,
   getAgencyUserPasswordHash,
   verifyPassword,
+  isLegacySha256PasswordHash,
   createAgencySession,
 } from '@/lib/agency-auth';
+import { createServiceSupabaseClient } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +43,22 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
+    }
+
+    // Upgrade legacy SHA-256 password hashes to bcrypt on successful login.
+    // This keeps backward compatibility without a hard migration.
+    if (isLegacySha256PasswordHash(passwordHash)) {
+      try {
+        const client = createServiceSupabaseClient();
+        const newHash = bcrypt.hashSync(password, 12);
+        await client
+          .from('agency_users')
+          .update({ password_hash: newHash, updated_at: new Date().toISOString() })
+          .eq('id', user.id);
+      } catch (upgradeError) {
+        // Non-fatal; login should still succeed.
+        console.warn('[Agency Auth] Failed to upgrade legacy password hash', upgradeError);
+      }
     }
 
     // Create session

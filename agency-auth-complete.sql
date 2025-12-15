@@ -49,6 +49,25 @@ CREATE INDEX IF NOT EXISTS idx_agency_sessions_token_hash ON agency_sessions(tok
 CREATE INDEX IF NOT EXISTS idx_agency_sessions_expires_at ON agency_sessions(expires_at);
 
 -- =============================================================
+-- Agency Password Reset Tokens Table
+-- Stores one-time password reset tokens for agency users
+-- =============================================================
+CREATE TABLE IF NOT EXISTS agency_password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agency_user_id UUID NOT NULL REFERENCES agency_users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agency_password_reset_tokens_user_id ON agency_password_reset_tokens(agency_user_id);
+CREATE INDEX IF NOT EXISTS idx_agency_password_reset_tokens_token_hash ON agency_password_reset_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_agency_password_reset_tokens_expires_at ON agency_password_reset_tokens(expires_at);
+
+-- =============================================================
 -- Updated-at trigger for agency_users
 -- =============================================================
 -- First, ensure the set_updated_at function exists (from admin security setup)
@@ -73,12 +92,14 @@ CREATE TRIGGER trg_agency_users_updated_at
 -- Enable RLS on agency_users
 ALTER TABLE agency_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agency_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agency_password_reset_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Agency users can view their own agency's users" ON agency_users;
 DROP POLICY IF EXISTS "Service role can manage all agency users" ON agency_users;
 DROP POLICY IF EXISTS "Agency users can view their own sessions" ON agency_sessions;
 DROP POLICY IF EXISTS "Service role can manage all sessions" ON agency_sessions;
+DROP POLICY IF EXISTS "Service role can manage all password reset tokens" ON agency_password_reset_tokens;
 
 -- Policy: Agency users can view users from their own agency
 CREATE POLICY "Agency users can view their own agency's users"
@@ -135,6 +156,17 @@ CREATE POLICY "Service role can manage all sessions"
     current_setting('request.jwt.claims', true)::json->>'role' = 'service_role'
   );
 
+-- Policy: Service role can manage all password reset tokens
+CREATE POLICY "Service role can manage all password reset tokens"
+  ON agency_password_reset_tokens
+  FOR ALL
+  USING (
+    current_setting('request.jwt.claims', true)::json->>'role' = 'service_role'
+  )
+  WITH CHECK (
+    current_setting('request.jwt.claims', true)::json->>'role' = 'service_role'
+  );
+
 -- =============================================================
 -- Helper Functions
 -- =============================================================
@@ -182,6 +214,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =============================================================
 COMMENT ON TABLE agency_users IS 'Stores agency login credentials - one user per agency';
 COMMENT ON TABLE agency_sessions IS 'Stores active agency user sessions';
+COMMENT ON TABLE agency_password_reset_tokens IS 'Stores one-time password reset tokens for agency users';
 COMMENT ON COLUMN agency_users.agency_id IS 'Unique constraint ensures only one user per agency';
 COMMENT ON COLUMN agency_sessions.token_hash IS 'SHA-256 hash of the session token';
 

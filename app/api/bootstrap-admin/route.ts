@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
           success: false, 
           error: `Failed to create user: ${createError.message}`,
           details: (createError as any).code || createError.name,
-          hint: 'This error is likely caused by a database trigger. Run nuclear-option-disable-trigger.sql in Supabase SQL Editor to fix.'
+          hint: 'This error may be caused by database triggers/policies. Verify the SQL setup scripts (e.g. supabase-admin-security.sql) are applied and check Supabase logs for trigger errors.'
         },
         { status: 500 }
       );

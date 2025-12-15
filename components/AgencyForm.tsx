@@ -108,15 +108,12 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
     } as const;
 
     // Validation
-    let webhookUrl: string | null = null;
     if (routePreference === 'predefined') {
       if (!selectedRoute) {
         alert('Please select a specific route from the available options (Question 5).');
         return;
       }
-      webhookUrl = 'https://n8n-utni.onrender.com/webhook/7a52ca95-0d6c-4b45-85f7-97e5d06531ec';
     } else if (routePreference === 'trip-design') {
-      webhookUrl = 'https://n8n-utni.onrender.com/webhook/a50bcb3f-8b8a-4628-9e35-75c68a9f50b9';
     } else {
       alert('Please select a route preference before submitting the form.');
       return;
@@ -143,7 +140,7 @@ export default function AgencyForm({ agency }: AgencyFormProps) {
 
       // Then send to webhook (optional - don't block success if this fails)
       try {
-        const webhookResponse = await fetch(webhookUrl, {
+        const webhookResponse = await fetch('/api/webhooks/n8n', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
