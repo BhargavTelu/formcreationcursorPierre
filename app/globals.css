@@ -5,6 +5,21 @@
 :root {
   --ring: 60 3.7% 15.9%;
 }
+/* Soft row reveal animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.5s ease-out forwards;
+}
 
 /* Utility layer extensions for card-like UI */
 @layer components {
@@ -29,3 +44,66 @@
 }
 
 
+/* ============================= */
+/* Global Section Spacing System */
+/* ============================= */
+
+:root {
+  --section-padding-sm: 4rem;   /* 64px */
+  --section-padding-md: 6rem;   /* 96px */
+  --section-padding-lg: 8rem;   /* 128px */
+}
+
+@media (min-width: 768px) {
+  :root {
+    --section-padding-sm: 5rem;
+    --section-padding-md: 7rem;
+    --section-padding-lg: 9rem;
+  }
+}
+
+/* Section spacing utilities */
+.section-sm {
+  padding-top: var(--section-padding-sm);
+  padding-bottom: var(--section-padding-sm);
+}
+
+.section-md {
+  padding-top: var(--section-padding-md);
+  padding-bottom: var(--section-padding-md);
+}
+
+.section-lg {
+  padding-top: var(--section-padding-lg);
+  padding-bottom: var(--section-padding-lg);
+}
+/* ============================= */
+/* Scroll Reveal Micro-Animation */
+/* ============================= */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease;
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.25s ease-out;
+}

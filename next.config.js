@@ -8,6 +8,15 @@ const nextConfig = {
       { protocol: 'https', hostname: 'www.dropbox.com' },
       // Supabase storage (optional if you move images there)
       { protocol: 'https', hostname: '**.supabase.co' },
+
+       {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+      },
     ],
   },
   experimental: {

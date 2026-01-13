@@ -34,7 +34,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "app/(admin-protected)/admin/page.tsx.bak"  ],
   "exclude": [
     "node_modules"
   ]

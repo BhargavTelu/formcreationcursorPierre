@@ -1,6 +1,9 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 export const metadata: Metadata = {
   title: 'Finest Africa Travel Planning',
