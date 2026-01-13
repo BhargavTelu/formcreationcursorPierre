@@ -1,6 +1,7 @@
 import { StepWrapper } from "../StepWrapper";
 import { SelectionCard } from "../SelectionCard";
-import { TripData } from "../../../types/TripPlanner";
+import type { TripData } from "../../../types/TripPlanner";
+import type { ElementType } from "react";
 import { Coffee, Gauge, Activity } from "lucide-react";
 
 interface Props {
@@ -8,7 +9,22 @@ interface Props {
   updateData: (data: Partial<TripData>) => void;
 }
 
-const PACE_OPTIONS = [
+/**
+ * Derive the pace union directly from TripData
+ */
+type PaceType = TripData["pace"];
+
+/**
+ * Single pace option type (exclude empty string)
+ */
+type PaceOption = {
+  id: Exclude<PaceType, "">;
+  title: string;
+  subtitle: string;
+  icon: ElementType;
+};
+
+const PACE_OPTIONS: PaceOption[] = [
   {
     id: "relaxed",
     title: "Unhurried",
@@ -50,12 +66,9 @@ export default function Pace({ data, updateData }: Props) {
                 <div className="flex flex-col items-center text-center gap-3">
                   {/* ICON */}
                   <div
-                    className={`w-10 h-12 rounded-xl flex items-center justify-center
-                      ${
-                        selected
-                          ? "bg-amber-700/10"
-                          : "bg-muted"
-                      }`}
+                    className={`w-10 h-12 rounded-xl flex items-center justify-center ${
+                      selected ? "bg-amber-700/10" : "bg-muted"
+                    }`}
                   >
                     <Icon
                       className={`w-5 h-5 ${
