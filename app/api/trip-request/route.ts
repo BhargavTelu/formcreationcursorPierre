@@ -1,52 +1,27 @@
 import { NextResponse } from "next/server";
-import PDFDocument from "pdfkit";
+import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const doc = new PDFDocument();
-    const buffers: Buffer[] = [];
+    const { error } = await supabase
+      .from("trip_requests")
+      .insert([{ data: body }]);
 
-    doc.on("data", (chunk: Buffer) => {
-      buffers.push(chunk);
-    });
+    if (error) {
+      console.error(error);
+      return NextResponse.json({ success: false }, { status: 500 });
+    }
 
-    const pdfPromise = new Promise<Buffer>((resolve, reject) => {
-      doc.on("end", () => {
-        resolve(Buffer.concat(buffers as any));
-      });
-
-      doc.on("error", reject);
-    });
-
-    // ---- PDF CONTENT ----
-    doc.fontSize(18).text("Trip Request", { underline: true });
-    doc.moveDown();
-
-    Object.entries(body).forEach(([key, value]) => {
-      doc.fontSize(12).text(`${key}: ${String(value)}`);
-    });
-
-    doc.end();
-    // ---------------------
-
-    const pdfBuffer = await pdfPromise;
-
-    return new NextResponse(new Uint8Array(pdfBuffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=trip-request.pdf",
-      },
-    });
-  } catch (error) {
-    console.error("PDF generation error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to generate PDF" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ success: false }, { status: 500 });
   }
 }
