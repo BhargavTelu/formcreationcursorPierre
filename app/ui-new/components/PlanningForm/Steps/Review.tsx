@@ -1,5 +1,9 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { StepWrapper } from "../StepWrapper";
 import { TripData } from "../../../types/TripPlanner";
+import { supabase } from "@/lib/supabase";
 import {
   User,
   Users,
@@ -17,6 +21,14 @@ interface ReviewStepProps {
   data: TripData;
   goToStep: (id: string, fromReview?: boolean) => void;
 }
+
+interface DestinationRow {
+  id: string;
+  name: string;
+  parent_id: string | null;
+}
+
+/* ---------- STATIC LABELS ---------- */
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   beach: "Beach & Coast",
@@ -41,7 +53,19 @@ const PACE_LABELS: Record<string, string> = {
   active: "Full days",
 };
 
-function Row({ icon: Icon, label, value, onEdit }: any) {
+/* ---------- ROW ---------- */
+
+function Row({
+  icon: Icon,
+  label,
+  value,
+  onEdit,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  onEdit: () => void;
+}) {
   return (
     <div className="group flex items-start gap-4 py-4 border-b last:border-b-0">
       <div className="w-9 h-9 rounded-full bg-stone-100 flex items-center justify-center">
@@ -64,7 +88,43 @@ function Row({ icon: Icon, label, value, onEdit }: any) {
   );
 }
 
+/* ---------- MAIN ---------- */
+
 export default function Review({ data, goToStep }: ReviewStepProps) {
+  const [destinations, setDestinations] = useState<DestinationRow[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("destinations")
+      .select("id, name, parent_id")
+      .then(({ data }) => setDestinations(data || []));
+  }, []);
+
+  const destinationMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    destinations.forEach((d) => {
+      map[d.id] = d.name;
+    });
+    return map;
+  }, [destinations]);
+
+  const destinationValue =
+    data.destinations.length === 0
+      ? "—"
+      : data.destinations
+          .map((d) => {
+            const regionName = destinationMap[d.id] ?? d.id;
+
+            if (!d.subRegions.length) return regionName;
+
+            const subNames = d.subRegions
+              .map((id) => destinationMap[id] ?? id)
+              .join(", ");
+
+            return `${regionName} (${subNames})`;
+          })
+          .join(", ");
+
   return (
     <StepWrapper
       title="Your journey summary"
@@ -76,7 +136,7 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
         <Row icon={Calendar} label="Travel timing" value={data.travelMonths.join(", ") || "Flexible"} onEdit={() => goToStep("travel-date", true)} />
         <Row icon={Route} label="Journey type" value="Custom trip design" onEdit={() => goToStep("journey-type", true)} />
         <Row icon={Clock} label="Duration" value={data.lengthOfStay} onEdit={() => goToStep("length-of-stay", true)} />
-        <Row icon={MapPin} label="Destinations" value={data.destinations.map(d => d.id).join(", ")} onEdit={() => goToStep("destinations", true)} />
+        <Row icon={MapPin} label="Destinations" value={destinationValue} onEdit={() => goToStep("destinations", true)} />
         <Row icon={Sparkles} label="Experiences" value={data.experiences.map(e => EXPERIENCE_LABELS[e]).join(", ")} onEdit={() => goToStep("experiences", true)} />
         <Row icon={Home} label="Accommodation" value={data.accommodationTypes.map(a => ACCOMMODATION_LABELS[a]).join(", ")} onEdit={() => goToStep("accommodation", true)} />
         <Row icon={Gauge} label="Pace" value={PACE_LABELS[data.pace]} onEdit={() => goToStep("pace", true)} />
