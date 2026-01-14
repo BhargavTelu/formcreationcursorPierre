@@ -111,7 +111,7 @@ export const GolfFocus = ({ data, updateData }: GolfFocusProps) => {
           >
             <button
               onClick={decrement}
-              disabled={data.golfRounds <= 1}
+              disabled={data.golfRounds as any <= 1}
               className="
                 h-9 w-9 rounded-full border
                 flex items-center justify-center
@@ -133,7 +133,7 @@ export const GolfFocus = ({ data, updateData }: GolfFocusProps) => {
 
             <button
               onClick={increment}
-              disabled={data.golfRounds >= 10}
+              disabled={data.golfRounds as any >= 10}
               className="
                 h-9 w-9 rounded-full border
                 flex items-center justify-center

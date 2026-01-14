@@ -54,22 +54,27 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [tripData, setTripData] = useState<TripData>({
-    travelerName: "",
-    groupSize: 2,
-    travelMonths: [],
-    specificDate: "",
-    journeyType: "",
-    journeyPath: "",
-    lengthOfStay: "",
-    customLengthOfStay: undefined,
-    golfFocus: false,
-    destinations: [],
-    experiences: [],
-    accommodationFeel: "",
-    accommodationTypes: [],
-    pace: "",
-    generalNotes: "",
-  });
+  travelerName: "",
+  groupSize: 2,
+  travelMonths: [],
+  specificDate: "",
+  journeyType: "",
+  journeyPath: "",
+  lengthOfStay: "",
+  customLengthOfStay: undefined,
+
+  // ✅ FIXED FIELD NAME
+  includesGolf: false,
+  golfRounds: undefined,
+
+  destinations: [],
+  experiences: [],
+  accommodationFeel: "",
+  accommodationTypes: [],
+  pace: "",
+  generalNotes: "",
+});
+
 
   const updateData = (data: Partial<TripData>) =>
     setTripData(prev => ({ ...prev, ...data }));

@@ -17,7 +17,11 @@ export const JourneyType = ({ data, updateData }: JourneyTypeProps) => {
       <div className="max-w-xl mx-auto grid md:grid-cols-2 gap-4">
         {/* Pre-defined (disabled) */}
         <div className="pointer-events-none opacity-50">
-          <SelectionCard selected={false} size="md">
+          <SelectionCard
+            selected={false}
+            onClick={() => {}}
+            size="md"
+          >
             <div className="text-center">
               <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-safari-light flex items-center justify-center">
                 <Map className="w-7 h-7 text-safari" />

@@ -45,7 +45,7 @@ export const DestinationsPreview = ({ onPlanTrip }: DestinationsPreviewProps) =>
       if (directionRef.current === "forward") {
         directionRef.current = "backward";
         swiper.autoplay.stop();
-        swiper.params.autoplay!.reverseDirection = true;
+        (swiper.params.autoplay as any).reverseDirection = true;
         swiper.autoplay.start();
       }
     };
@@ -54,7 +54,7 @@ export const DestinationsPreview = ({ onPlanTrip }: DestinationsPreviewProps) =>
       if (directionRef.current === "backward") {
         directionRef.current = "forward";
         swiper.autoplay.stop();
-        swiper.params.autoplay!.reverseDirection = false;
+        (swiper.params.autoplay as any).reverseDirection = false;
         swiper.autoplay.start();
       }
     };
