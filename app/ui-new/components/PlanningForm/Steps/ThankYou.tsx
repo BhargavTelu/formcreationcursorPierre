@@ -7,16 +7,11 @@ import jsPDF from "jspdf";
 import { supabase } from "@/lib/supabase";
 import {
   CheckCircle,
-  User,
-  Users,
-  Calendar,
-  MapPin,
-  Sparkles,
-  Clock,
-  Gauge,
   Download,
   Home,
 } from "lucide-react";
+
+/* ================= TYPES ================= */
 
 interface ThankYouProps {
   data: TripData;
@@ -29,16 +24,22 @@ interface DestinationRow {
   parent_id: string | null;
 }
 
-/* ---------- LABEL MAPS ---------- */
+/* ================= LABEL MAPS ================= */
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   beach: "Beach & Coast",
   nature: "Nature & Scenic",
   safari: "Safari & Wildlife",
-  "food-wine": "Food & Wine",
   city: "City & Culture",
   adventure: "Adventure",
   history: "History & Local Life",
+};
+
+const ACCOMMODATION_LABELS: Record<string, string> = {
+  boutique: "Boutique hotel",
+  lodges: "Safari lodge",
+  guesthouse: "Guesthouse / B&B",
+  hotel: "Hotel with bar & pool",
 };
 
 const PACE_LABELS: Record<string, string> = {
@@ -47,10 +48,12 @@ const PACE_LABELS: Record<string, string> = {
   active: "Full days",
 };
 
-/* ---------- MAIN ---------- */
+/* ================= COMPONENT ================= */
 
 export default function ThankYou({ data, onExit }: ThankYouProps) {
   const [destinations, setDestinations] = useState<DestinationRow[]>([]);
+
+  /* ---------- FETCH DESTINATION NAMES ---------- */
 
   useEffect(() => {
     supabase
@@ -61,79 +64,81 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
 
   const destinationMap = useMemo(() => {
     const map: Record<string, string> = {};
-    destinations.forEach((d) => {
+    destinations.forEach(d => {
       map[d.id] = d.name;
     });
     return map;
   }, [destinations]);
 
+  /* ---------- FORMAT DESTINATIONS ---------- */
+
   const destinationText =
     data.destinations.length === 0
       ? "Not selected"
       : data.destinations
-          .map((d) => {
-            const regionName = destinationMap[d.id] ?? d.id;
+          .map(d => {
+            const region = destinationMap[d.id] ?? d.id;
 
-            if (!d.subRegions.length) return regionName;
+            if (!d.subRegions.length) return region;
 
             const subs = d.subRegions
-              .map((id) => destinationMap[id] ?? id)
+              .map(id => destinationMap[id] ?? id)
               .join(", ");
 
-            return `${regionName} (${subs})`;
+            return `${region}: ${subs}`;
           })
-          .join(", ");
+          .join(" | ");
 
-  /* ---------- PDF ---------- */
+  /* ---------- FORMAT ACCOMMODATION ---------- */
+
+  const accommodationText =
+    data.accommodationTypes.length > 0
+      ? data.accommodationTypes
+          .map(a => ACCOMMODATION_LABELS[a] ?? a)
+          .join(", ")
+      : "Not specified";
+
+  /* ---------- FORMAT GOLF ---------- */
+
+  const golfText = data.includesGolf
+    ? `${data.golfRounds ?? 1} round${data.golfRounds === 1 ? "" : "s"}`
+    : "Not included";
+
+  const golfCoursesText =
+    data.mustHaveGolfCourses && data.mustHaveGolfCourses.length > 0
+      ? data.mustHaveGolfCourses
+          .map(id => destinationMap[id] ?? id)
+          .join(", ")
+      : "Designer selection";
+
+  /* ================= PDF ================= */
 
   const downloadPDF = () => {
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
     let y = 24;
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.text("Your Journey Summary", pageWidth / 2, y, { align: "center" });
-
-    y += 10;
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(100);
-    pdf.text(
-      "Review of your submitted travel preferences",
-      pageWidth / 2,
-      y,
-      { align: "center" }
-    );
-
-    y += 14;
-
-    const cardX = 16;
-    const cardWidth = pageWidth - 32;
-
     const drawRow = (label: string, value: string) => {
       pdf.setDrawColor(230);
-      pdf.line(cardX, y, cardX + cardWidth, y);
-
+      pdf.line(16, y, pageWidth - 16, y);
       y += 8;
 
-      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
       pdf.setTextColor(120);
-      pdf.text(label, cardX + 2, y);
+      pdf.text(label, 18, y);
 
       y += 5;
-
-      pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(30);
-      pdf.text(value || "—", cardX + 2, y);
+      pdf.text(value || "—", 18, y);
 
       y += 10;
     };
 
-    pdf.line(cardX, y, cardX + cardWidth, y);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.text("Your Journey Summary", pageWidth / 2, y, { align: "center" });
+    y += 18;
 
     drawRow("Traveller", data.travelerName);
     drawRow("Group size", `${data.groupSize} people`);
@@ -141,28 +146,18 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
       "Travel timing",
       data.travelMonths.join(", ") || data.specificDate || "Flexible"
     );
-    drawRow("Journey type", "Custom trip design");
     drawRow("Duration", data.lengthOfStay || "—");
     drawRow("Destinations", destinationText);
     drawRow(
       "Experiences",
       data.experiences.length
-        ? data.experiences.map((e) => EXPERIENCE_LABELS[e]).join(", ")
+        ? data.experiences.map(e => EXPERIENCE_LABELS[e]).join(", ")
         : "Not selected"
     );
+    drawRow("Accommodation", accommodationText);
+    drawRow("Golf", golfText);
+    drawRow("Golf courses", golfCoursesText);
     drawRow("Pace", PACE_LABELS[data.pace] || "—");
-
-    pdf.line(cardX, y - 4, cardX + cardWidth, y - 4);
-
-    y += 10;
-    pdf.setFontSize(9);
-    pdf.setTextColor(150);
-    pdf.text(
-      "A travel designer will contact you within 24 hours.",
-      pageWidth / 2,
-      y,
-      { align: "center" }
-    );
 
     const safeName =
       data.travelerName
@@ -174,7 +169,7 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
     pdf.save(`travel-request-${safeName}.pdf`);
   };
 
-  /* ---------- UI ---------- */
+  /* ================= UI ================= */
 
   return (
     <StepWrapper

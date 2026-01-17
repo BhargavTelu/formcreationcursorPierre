@@ -5,7 +5,10 @@ import { TripData } from "../../../types/TripPlanner";
 interface ExperiencesProps {
   data: TripData;
   updateData: (data: Partial<TripData>) => void;
+  goToStep: (id: string) => void;
 }
+
+/* ================= DATA ================= */
 
 const EXPERIENCES = [
   {
@@ -27,12 +30,6 @@ const EXPERIENCES = [
       "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=900&q=80",
   },
   {
-    id: "food-wine",
-    title: "Food & Wine",
-    image:
-      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80",
-  },
-  {
     id: "city",
     title: "City & Culture",
     image:
@@ -52,24 +49,52 @@ const EXPERIENCES = [
   },
 ];
 
-export default function Experiences({ data, updateData }: ExperiencesProps) {
+const NEXT_STEP_ID = "accommodation";
+
+/* ================= COMPONENT ================= */
+
+export default function Experiences({
+  data,
+  updateData,
+  goToStep,
+}: ExperiencesProps) {
   const selected = data.experiences;
+
+  /* ---------- TOGGLE ---------- */
 
   const toggle = (id: string) => {
     updateData({
       experiences: selected.includes(id)
-        ? selected.filter(v => v !== id)
+        ? selected.filter((v) => v !== id)
         : [...selected, id],
     });
   };
+
+  /* ---------- SKIP ---------- */
+  /**
+   * Skip MUST NOT:
+   * - clear experiences
+   * - overwrite selections
+   * - introduce defaults
+   *
+   * It only moves forward.
+   */
+  const handleSkip = () => {
+    updateData({
+      experiences: []
+    });
+    goToStep(NEXT_STEP_ID);
+  };
+
+  /* ---------- RENDER ---------- */
 
   return (
     <StepWrapper
       title="What would you love to include?"
       subtitle="Select all experiences that appeal to you"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {EXPERIENCES.map(exp => (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {EXPERIENCES.map((exp) => (
           <ImageCard
             key={exp.id}
             image={exp.image}
@@ -79,6 +104,17 @@ export default function Experiences({ data, updateData }: ExperiencesProps) {
             onClick={() => toggle(exp.id)}
           />
         ))}
+      </div>
+
+      {/* SKIP */}
+      <div className="mt-6 text-center">
+        <button
+          type="button"
+          onClick={handleSkip}
+          className="text-sm text-amber-700 hover:text-stone-700 transition"
+        >
+          Skip for now
+        </button>
       </div>
     </StepWrapper>
   );

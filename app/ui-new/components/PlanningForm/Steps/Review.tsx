@@ -14,8 +14,11 @@ import {
   Sparkles,
   Home,
   Gauge,
+  Flag, // ✅ FIX: Lucide-supported icon
   Pencil,
 } from "lucide-react";
+
+/* ================= TYPES ================= */
 
 interface ReviewStepProps {
   data: TripData;
@@ -25,10 +28,9 @@ interface ReviewStepProps {
 interface DestinationRow {
   id: string;
   name: string;
-  parent_id: string | null;
 }
 
-/* ---------- STATIC LABELS ---------- */
+/* ================= LABELS ================= */
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   beach: "Beach & Coast",
@@ -53,7 +55,7 @@ const PACE_LABELS: Record<string, string> = {
   active: "Full days",
 };
 
-/* ---------- ROW ---------- */
+/* ================= ROW ================= */
 
 function Row({
   icon: Icon,
@@ -74,7 +76,7 @@ function Row({
 
       <div className="flex-1">
         <p className="text-xs text-stone-500">{label}</p>
-        <p className="text-sm font-medium">{value}</p>
+        <p className="text-sm font-medium whitespace-pre-line">{value}</p>
       </div>
 
       <button
@@ -88,17 +90,21 @@ function Row({
   );
 }
 
-/* ---------- MAIN ---------- */
+/* ================= MAIN ================= */
 
 export default function Review({ data, goToStep }: ReviewStepProps) {
   const [destinations, setDestinations] = useState<DestinationRow[]>([]);
 
+  /* ---------- FETCH DESTINATIONS ---------- */
+
   useEffect(() => {
     supabase
       .from("destinations")
-      .select("id, name, parent_id")
+      .select("id, name")
       .then(({ data }) => setDestinations(data || []));
   }, []);
+
+  /* ---------- MAP ---------- */
 
   const destinationMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -108,22 +114,39 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
     return map;
   }, [destinations]);
 
+  /* ================= DESTINATION SUMMARY ================= */
+
   const destinationValue =
     data.destinations.length === 0
       ? "—"
       : data.destinations
-          .map((d) => {
-            const regionName = destinationMap[d.id] ?? d.id;
+          .map((region) => {
+            const regionName = destinationMap[region.id] ?? region.id;
 
-            if (!d.subRegions.length) return regionName;
+            if (!region.subRegions.length) return regionName;
 
-            const subNames = d.subRegions
+            const subNames = region.subRegions
               .map((id) => destinationMap[id] ?? id)
               .join(", ");
 
-            return `${regionName} (${subNames})`;
+            return `${regionName}: [${subNames}]`;
           })
-          .join(", ");
+          .join("\n");
+
+  /* ================= GOLF SUMMARY ================= */
+
+  const golfValue = !data.includesGolf
+    ? "No golf planned"
+    : [
+        `Rounds planned: ${data.golfRounds ?? 1}`,
+        data.mustHaveGolfCourses?.length
+          ? `Must-have courses: ${data.mustHaveGolfCourses
+              .map((id) => destinationMap[id] ?? id)
+              .join(", ")}`
+          : "Designer will include iconic courses",
+      ].join("\n");
+
+  /* ================= RENDER ================= */
 
   return (
     <StepWrapper
@@ -131,15 +154,89 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
       subtitle="Review your selections before we connect you with a travel designer"
     >
       <div className="max-w-2xl mx-auto bg-white rounded-3xl border px-8 py-6 shadow-md">
-        <Row icon={User} label="Traveller" value={data.travelerName} onEdit={() => goToStep("traveller-name", true)} />
-        <Row icon={Users} label="Group size" value={`${data.groupSize} people`} onEdit={() => goToStep("group-size", true)} />
-        <Row icon={Calendar} label="Travel timing" value={data.travelMonths.join(", ") || "Flexible"} onEdit={() => goToStep("travel-date", true)} />
-        <Row icon={Route} label="Journey type" value="Custom trip design" onEdit={() => goToStep("journey-type", true)} />
-        <Row icon={Clock} label="Duration" value={data.lengthOfStay} onEdit={() => goToStep("length-of-stay", true)} />
-        <Row icon={MapPin} label="Destinations" value={destinationValue} onEdit={() => goToStep("destinations", true)} />
-        <Row icon={Sparkles} label="Experiences" value={data.experiences.map(e => EXPERIENCE_LABELS[e]).join(", ")} onEdit={() => goToStep("experiences", true)} />
-        <Row icon={Home} label="Accommodation" value={data.accommodationTypes.map(a => ACCOMMODATION_LABELS[a]).join(", ")} onEdit={() => goToStep("accommodation", true)} />
-        <Row icon={Gauge} label="Pace" value={PACE_LABELS[data.pace]} onEdit={() => goToStep("pace", true)} />
+        <Row
+          icon={User}
+          label="Traveller"
+          value={data.travelerName || "—"}
+          onEdit={() => goToStep("trip-basics", true)}
+        />
+
+        <Row
+          icon={Users}
+          label="Group size"
+          value={`${data.groupSize} people`}
+          onEdit={() => goToStep("group-size", true)}
+        />
+
+        <Row
+          icon={Calendar}
+          label="Travel timing"
+          value={data.travelMonths.join(", ") || "Flexible"}
+          onEdit={() => goToStep("travel-date", true)}
+        />
+
+        <Row
+          icon={Route}
+          label="Journey type"
+          value={data.journeyType || "—"}
+          onEdit={() => goToStep("journey-type", true)}
+        />
+
+        <Row
+          icon={Clock}
+          label="Duration"
+          value={
+            data.lengthOfStay === "custom"
+              ? `${data.customLengthOfStay} nights`
+              : data.lengthOfStay || "—"
+          }
+          onEdit={() => goToStep("length-of-stay", true)}
+        />
+
+        <Row
+          icon={MapPin}
+          label="Destinations"
+          value={destinationValue}
+          onEdit={() => goToStep("destinations", true)}
+        />
+
+        <Row
+          icon={Flag} // ✅ SAFE ICON
+          label="Golf"
+          value={golfValue}
+          onEdit={() => goToStep("golf-focus", true)}
+        />
+
+        <Row
+          icon={Sparkles}
+          label="Experiences"
+          value={
+            data.experiences.length
+              ? data.experiences.map((e) => EXPERIENCE_LABELS[e]).join(", ")
+              : "—"
+          }
+          onEdit={() => goToStep("experiences", true)}
+        />
+
+        <Row
+          icon={Home}
+          label="Accommodation"
+          value={
+            data.accommodationTypes.length
+              ? data.accommodationTypes
+                  .map((a) => ACCOMMODATION_LABELS[a])
+                  .join(", ")
+              : "—"
+          }
+          onEdit={() => goToStep("accommodation", true)}
+        />
+
+        <Row
+          icon={Gauge}
+          label="Pace"
+          value={PACE_LABELS[data.pace] || "—"}
+          onEdit={() => goToStep("pace", true)}
+        />
       </div>
     </StepWrapper>
   );

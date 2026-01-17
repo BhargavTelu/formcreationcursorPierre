@@ -6,11 +6,10 @@ import PlannerFooter from "./PlannerFooter";
 import { TripData } from "../../types/TripPlanner";
 
 /* Steps */
-import TravellerName from "./Steps/TravellerName";
-import { GroupSize } from "./Steps/GroupSize";
-import TravellingDate from "./Steps/TravellingDate";
-import { JourneyType } from "./Steps/JourneyType";
+import TripBasics from "./Steps/TripBasics";
+import TravellingDates from "./Steps/TravellingDates";
 import { LengthOfStay } from "./Steps/LengthOfStay";
+import { JourneyType } from "./Steps/JourneyType";
 import { GolfFocus } from "./Steps/GolfFocus";
 import { Destinations } from "./Steps/Destinations";
 import Experiences from "./Steps/Experiences";
@@ -30,18 +29,61 @@ type StepConfig = {
 /* ---------------- STEPS ---------------- */
 
 const steps: StepConfig[] = [
-  { id: "traveller-name", component: TravellerName, isValid: d => d.travelerName.trim().length > 0 },
-  { id: "group-size", component: GroupSize, isValid: d => d.groupSize >= 1 },
-  { id: "travel-date", component: TravellingDate, isValid: d => d.travelMonths.length > 0 || !!d.specificDate },
-  { id: "journey-type", component: JourneyType, isValid: d => !!d.journeyType },
-  { id: "length-of-stay", component: LengthOfStay, isValid: d => !!d.lengthOfStay },
-  { id: "golf-focus", component: GolfFocus, isValid: () => true },
-  { id: "destinations", component: Destinations, isValid: d => d.destinations.length > 0 },
-  { id: "experiences", component: Experiences, isValid: d => d.experiences.length > 0 },
-  { id: "accommodation", component: Accommodation, isValid: () => true },
-  { id: "pace", component: Pace, isValid: d => !!d.pace },
-  { id: "review", component: Review, isValid: () => true },
-  { id: "thank-you", component: ThankYou, isValid: () => true },
+  {
+    id: "trip-basics",
+    component: TripBasics,
+    isValid: (d) => d.travelerName.trim().length > 0 && d.groupSize >= 1,
+  },
+  {
+    id: "travel-date",
+    component: TravellingDates,
+    isValid: () => true,
+  },
+  {
+    id: "length-of-stay",
+    component: LengthOfStay,
+    isValid: (d) => !!d.lengthOfStay,
+  },
+  {
+    id: "journey-type",
+    component: JourneyType,
+    isValid: (d) => !!d.journeyType,
+  },
+  {
+    id: "golf-focus",
+    component: GolfFocus,
+    isValid: () => true,
+  },
+  {
+    id: "destinations",
+    component: Destinations,
+    isValid: (d) => d.destinations.length > 0,
+  },
+  {
+    id: "experiences",
+    component: Experiences,
+    isValid: (d) => d.experiences.length > 0,
+  },
+  {
+    id: "accommodation",
+    component: Accommodation,
+    isValid: () => true,
+  },
+  {
+    id: "pace",
+    component: Pace,
+    isValid: (d) => !!d.pace,
+  },
+  {
+    id: "review",
+    component: Review,
+    isValid: () => true,
+  },
+  {
+    id: "thank-you",
+    component: ThankYou,
+    isValid: () => true,
+  },
 ];
 
 const TOTAL_STEPS = steps.length;
@@ -54,34 +96,31 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [tripData, setTripData] = useState<TripData>({
-  travelerName: "",
-  groupSize: 2,
-  travelMonths: [],
-  specificDate: "",
-  journeyType: "",
-  journeyPath: "",
-  lengthOfStay: "",
-  customLengthOfStay: undefined,
-
-  // ✅ FIXED FIELD NAME
-  includesGolf: false,
-  golfRounds: undefined,
-
-  destinations: [],
-  experiences: [],
-  accommodationFeel: "",
-  accommodationTypes: [],
-  pace: "",
-  generalNotes: "",
-});
-
+    travelerName: "",
+    groupSize: 2,
+    travelMonths: [],
+    specificDate: "",
+    journeyType: "",
+    journeyPath: "",
+    lengthOfStay: "",
+    customLengthOfStay: undefined,
+    includesGolf: false,
+    golfRounds: undefined,
+    destinations: [],
+    experiences: [],
+    accommodationFeel: "",
+    accommodationTypes: [],
+    pace: "",
+    generalNotes: "",
+  });
 
   const updateData = (data: Partial<TripData>) =>
-    setTripData(prev => ({ ...prev, ...data }));
+    setTripData((prev) => ({ ...prev, ...data }));
 
-  /* ---- GO TO STEP (WITH RETURN SUPPORT) ---- */
+  /* ---------- GO TO STEP ---------- */
+
   const goToStep = (id: string, fromReview = false) => {
-    const index = steps.findIndex(s => s.id === id);
+    const index = steps.findIndex((s) => s.id === id);
     if (index === -1) return;
 
     if (fromReview) {
@@ -95,7 +134,28 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
   const StepComponent = currentStep.component;
   const canProceed = currentStep.isValid(tripData);
 
-  /* ---- SUBMIT ---- */
+  /* ---------- NEXT HANDLER (🔥 KEY FIX) ---------- */
+
+  const handleNext = () => {
+    const stepId = steps[stepIndex].id;
+
+    // ✅ RETURN TO REVIEW AFTER EDIT
+    if (returnStep === "review" && stepId !== "review") {
+      setReturnStep(null);
+      goToStep("review");
+      return;
+    }
+
+    if (stepId === "review") {
+      submitTrip();
+      return;
+    }
+
+    setStepIndex((i) => Math.min(TOTAL_STEPS - 1, i + 1));
+  };
+
+  /* ---------- SUBMIT ---------- */
+
   const submitTrip = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -113,26 +173,13 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
     }
   };
 
-  /* ---- ENTER KEY HANDLING ---- */
+  /* ---------- ENTER KEY ---------- */
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "Enter") return;
-
-      const stepId = steps[stepIndex].id;
-
-      if (returnStep === "review" && stepId !== "review") {
-        setReturnStep(null);
-        goToStep("review");
-        return;
-      }
-
       if (!canProceed) return;
-
-      if (stepId === "review") {
-        submitTrip();
-      } else {
-        setStepIndex(i => Math.min(TOTAL_STEPS - 1, i + 1));
-      }
+      handleNext();
     };
 
     window.addEventListener("keydown", handler);
@@ -164,22 +211,8 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
             canProceed={canProceed && !submitting}
             isFirstStep={stepIndex === 0}
             isLastStep={steps[stepIndex].id === "review"}
-            onBack={() => setStepIndex(i => Math.max(0, i - 1))}
-            onNext={() => {
-              const stepId = steps[stepIndex].id;
-
-              if (returnStep === "review" && stepId !== "review") {
-                setReturnStep(null);
-                goToStep("review");
-                return;
-              }
-
-              if (stepId === "review") {
-                submitTrip();
-              } else {
-                setStepIndex(i => Math.min(TOTAL_STEPS - 1, i + 1));
-              }
-            }}
+            onBack={() => setStepIndex((i) => Math.max(0, i - 1))}
+            onNext={handleNext}
           />
         </footer>
       )}

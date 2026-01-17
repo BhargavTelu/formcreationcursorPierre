@@ -25,6 +25,7 @@ export interface TripData {
   // STEP 6 – Golf
   includesGolf: boolean;
   golfRounds?: number;
+mustHaveGolfCourses?: string[];
 
   // STEP 7 – Destinations
   destinations: SelectedDestination[];

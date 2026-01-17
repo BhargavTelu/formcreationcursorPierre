@@ -5,6 +5,7 @@ import { Hotel, Home, Trees, Star } from "lucide-react";
 
 interface Props {
   data: TripData;
+  goToStep: any;
   updateData: (data: Partial<TripData>) => void;
 }
 
@@ -40,7 +41,7 @@ const ACCOMMODATION_TYPES = [
 
 ];
 
-export default function Accommodation({ data, updateData }: Props) {
+export default function Accommodation({ data, goToStep, updateData }: Props) {
   const selected = data.accommodationTypes;
 
   const toggle = (id: string) => {
@@ -50,7 +51,14 @@ export default function Accommodation({ data, updateData }: Props) {
         : [...selected, id],
     });
   };
+const NEXT_STEP_ID = "pace";
 
+ const handleSkip = () => {
+    updateData({
+      travelMonths: [],
+    });
+    goToStep(NEXT_STEP_ID);
+  };
   return (
     <StepWrapper
       title="Any accommodation styles you especially enjoy?"
@@ -116,6 +124,13 @@ export default function Accommodation({ data, updateData }: Props) {
           }
         )}
       </div>
+       <button
+            type="button"
+            onClick={handleSkip}
+            className="text-sm mt-5  text-amber-700 hover:text-stone-700 transition"
+          >
+            Skip for now
+          </button>
     </StepWrapper>
   );
 }
