@@ -21,8 +21,8 @@ export default function TripBasics({ data, updateData }: Props) {
 
   return (
     <StepWrapper
-      title="Let’s get started"
-      subtitle="Tell us a little about your journey"
+      title=""
+      subtitle=""
     >
       <div className="max-w-lg mx-auto space-y-14">
 

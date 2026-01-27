@@ -5,7 +5,7 @@ import { TripData } from "../../../types/TripPlanner";
 interface TravellingDatesProps {
   data: TripData;
   updateData: (data: Partial<TripData>) => void;
-  goToStep: (id: string) => void;
+  goToStep?: (id: string) => void;
 }
 
 const months = [
@@ -23,28 +23,16 @@ const months = [
   "Dec 2026",
 ];
 
-const NEXT_STEP_ID = "length-of-stay";
-
 const TravellingDates = ({
   data,
   updateData,
-  goToStep,
 }: TravellingDatesProps) => {
   const handleSelect = (month: string) => {
-    updateData({
-      travelMonths: [month],
-    });
-  };
-
-  const handleContinue = () => {
-    goToStep(NEXT_STEP_ID);
+    updateData({ travelMonths: [month] });
   };
 
   const handleSkip = () => {
-    updateData({
-      travelMonths: [],
-    });
-    goToStep(NEXT_STEP_ID);
+    updateData({ travelMonths: [] });
   };
 
   return (
@@ -53,12 +41,11 @@ const TravellingDates = ({
       subtitle="Select a preferred month — or skip if you're flexible."
     >
       <div className="max-w-3xl mx-auto space-y-10">
-        {/* MONTHS */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           {months.map((month) => (
             <SelectionCard
               key={month}
-              selected={data.travelMonths[0] === month}
+              selected={data.travelMonths?.[0] === month}
               onClick={() => handleSelect(month)}
               size="sm"
               className="text-center"
@@ -68,18 +55,14 @@ const TravellingDates = ({
           ))}
         </div>
 
-        {/* ACTIONS */}
-       
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="text-sm  text-amber-700 hover:text-stone-700 transition"
-          >
-            Skip for now
-          </button>
-
-        
-        </div>
+        <button
+          type="button"
+          onClick={handleSkip}
+          className="text-sm text-amber-700 hover:text-stone-700 transition"
+        >
+          Skip for now
+        </button>
+      </div>
     </StepWrapper>
   );
 };
