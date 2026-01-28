@@ -5,11 +5,9 @@ import Header from "../MainPageSections/Header";
 import PlannerFooter from "./PlannerFooter";
 import { TripData } from "../../types/TripPlanner";
 
-/* Steps */
-import TripBasics from "./Steps/TripBasics";
-import TravellingDates from "./Steps/TravellingDates";
-import { LengthOfStay } from "./Steps/LengthOfStay";
-import { JourneyType } from "./Steps/JourneyType";
+/* ---------------- STEPS ---------------- */
+
+import TripBasicsCombined from "./Steps/TripBasicsCombined";
 import { GolfFocus } from "./Steps/GolfFocus";
 import { Destinations } from "./Steps/Destinations";
 import Experiences from "./Steps/Experiences";
@@ -26,28 +24,17 @@ type StepConfig = {
   isValid: (data: TripData) => boolean;
 };
 
-/* ---------------- STEPS ---------------- */
+/* ---------------- STEPS CONFIG ---------------- */
 
 const steps: StepConfig[] = [
   {
-    id: "trip-basics",
-    component: TripBasics,
-    isValid: (d) => d.travelerName.trim().length > 0 && d.groupSize >= 1,
-  },
-  {
-    id: "travel-date",
-    component: TravellingDates,
-    isValid: () => true,
-  },
-  {
-    id: "length-of-stay",
-    component: LengthOfStay,
-    isValid: (d) => !!d.lengthOfStay,
-  },
-  {
-    id: "journey-type",
-    component: JourneyType,
-    isValid: (d) => !!d.journeyType,
+    id: "trip-basics-combined",
+    component: TripBasicsCombined,
+    isValid: (d) =>
+      d.travelerName.trim().length > 0 &&
+      d.groupSize >= 1 &&
+      !!d.lengthOfStay &&
+      !!d.journeyType,
   },
   {
     id: "golf-focus",
@@ -134,12 +121,12 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
   const StepComponent = currentStep.component;
   const canProceed = currentStep.isValid(tripData);
 
-  /* ---------- NEXT HANDLER (🔥 KEY FIX) ---------- */
+  /* ---------- NEXT HANDLER ---------- */
 
   const handleNext = () => {
-    const stepId = steps[stepIndex].id;
+    const stepId = currentStep.id;
 
-    // ✅ RETURN TO REVIEW AFTER EDIT
+    // Return to review after editing
     if (returnStep === "review" && stepId !== "review") {
       setReturnStep(null);
       goToStep("review");
