@@ -6,6 +6,7 @@ import TravellingDates from "./TravellingDates";
 import { LengthOfStay } from "./LengthOfStay";
 import { JourneyType } from "./JourneyType";
 import { TripData } from "../../../types/TripPlanner";
+import { GolfFocusInline } from "./GolfFocusInline";
 
 interface Props {
   data: TripData;
@@ -30,6 +31,7 @@ export default function TripBasicsCombined({ data, updateData }: Props) {
         <LengthOfStay data={data} updateData={updateData} />
 
         <JourneyType data={data} updateData={updateData} />
+          <GolfFocusInline data={data} updateData={updateData} />
       </div>
     </StepWrapper>
   );

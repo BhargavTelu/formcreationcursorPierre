@@ -43,13 +43,13 @@ export const Destinations = ({ data, updateData }: Props) => {
   /* ================= DERIVED ================= */
 
   const regions = useMemo(
-    () => places.filter(p => p.parent_id === null).slice(0, 8),
+    () => places.filter((p) => p.parent_id === null).slice(0, 8),
     [places]
   );
 
   const childrenMap = useMemo(() => {
     const map: Record<string, DBPlace[]> = {};
-    places.forEach(p => {
+    places.forEach((p) => {
       if (!p.parent_id) return;
       if (!map[p.parent_id]) map[p.parent_id] = [];
       map[p.parent_id].push(p);
@@ -57,36 +57,71 @@ export const Destinations = ({ data, updateData }: Props) => {
     return map;
   }, [places]);
 
+  const areas = useMemo(() => {
+    if (!activeRegion) return [];
+    return childrenMap[activeRegion.id] || [];
+  }, [activeRegion, childrenMap]);
+
+  const hotels = useMemo(() => {
+    if (!activeArea) return [];
+    return childrenMap[activeArea.id] || [];
+  }, [activeArea, childrenMap]);
+
   /* ================= DATA HELPERS ================= */
 
   const regionEntry = (regionId: string) =>
-    selected.find(d => d.id === regionId);
+    selected.find((d) => d.id === regionId);
+
+  // ✅ Region is "selected" ONLY if it has at least 1 chosen area/hotel
+  const isRegionSelected = (regionId: string) => {
+    const entry = regionEntry(regionId);
+    return !!entry && entry.subRegions.length > 0;
+  };
 
   const isSelected = (regionId: string, childId?: string) => {
     const entry = regionEntry(regionId);
     if (!entry) return false;
-    if (!childId) return true;
+
+    if (!childId) {
+      // ✅ region selection depends on having children
+      return entry.subRegions.length > 0;
+    }
+
     return entry.subRegions.includes(childId);
   };
 
+  // ✅ If subRegions becomes empty, remove the region from TripData
   const upsertRegion = (regionId: string, subRegions: string[]) => {
     const exists = regionEntry(regionId);
 
+    // remove region entry if nothing selected
+    if (subRegions.length === 0) {
+      updateData({
+        destinations: exists ? selected.filter((d) => d.id !== regionId) : selected,
+      });
+      return;
+    }
+
     updateData({
       destinations: exists
-        ? selected.map(d =>
-            d.id === regionId ? { ...d, subRegions } : d
-          )
+        ? selected.map((d) => (d.id === regionId ? { ...d, subRegions } : d))
         : [...selected, { id: regionId, subRegions }],
     });
+  };
+
+  const ensureRegionExists = (regionId: string) => {
+    if (!regionEntry(regionId)) {
+      // create region entry but DO NOT make it "selected" unless we add children
+      updateData({
+        destinations: [...selected, { id: regionId, subRegions: [] }],
+      });
+    }
   };
 
   /* ================= CLICK HANDLERS ================= */
 
   const openRegion = (region: DBPlace) => {
-    if (!regionEntry(region.id)) {
-      upsertRegion(region.id, []);
-    }
+    // ✅ Do NOT auto-select the region here
     setActiveRegion(region);
     setActiveArea(null);
   };
@@ -94,30 +129,41 @@ export const Destinations = ({ data, updateData }: Props) => {
   const handleAreaClick = (area: DBPlace) => {
     if (!activeRegion) return;
 
+    ensureRegionExists(activeRegion.id);
+
     const entry = regionEntry(activeRegion.id);
     const subs = entry?.subRegions ?? [];
-    const hasHotels = (childrenMap[area.id] || []).length > 0;
 
-    const updatedSubs = subs.includes(area.id)
-      ? subs.filter(id => id !== area.id)
+    const isCurrentlySelected = subs.includes(area.id);
+    const updatedSubs = isCurrentlySelected
+      ? subs.filter((id) => id !== area.id)
       : [...subs, area.id];
 
     upsertRegion(activeRegion.id, updatedSubs);
 
-  
-    if (hasHotels) {
+    // ✅ If unselecting the active area, hide hotels
+    if (isCurrentlySelected && activeArea?.id === area.id) {
+      setActiveArea(null);
+      return;
+    }
+
+    // ✅ If selecting, show hotels for this area
+    if (!isCurrentlySelected) {
       setActiveArea(area);
+      return;
     }
   };
 
   const toggleHotel = (hotel: DBPlace) => {
     if (!activeRegion) return;
 
+    ensureRegionExists(activeRegion.id);
+
     const entry = regionEntry(activeRegion.id);
     const subs = entry?.subRegions ?? [];
 
     const updated = subs.includes(hotel.id)
-      ? subs.filter(id => id !== hotel.id)
+      ? subs.filter((id) => id !== hotel.id)
       : [...subs, hotel.id];
 
     upsertRegion(activeRegion.id, updated);
@@ -125,12 +171,9 @@ export const Destinations = ({ data, updateData }: Props) => {
 
   /* ================= BACK HANDLER ================= */
 
-  const handleBack = () => {
-    if (activeArea) {
-      setActiveArea(null);        // Hotel → Area
-    } else if (activeRegion) {
-      setActiveRegion(null);      // Area → Region
-    }
+  const backOne = () => {
+    if (activeArea) setActiveArea(null);
+    else if (activeRegion) setActiveRegion(null);
   };
 
   /* ================= UI HELPERS ================= */
@@ -158,74 +201,48 @@ export const Destinations = ({ data, updateData }: Props) => {
 
   const Breadcrumb = () => (
     <div className="flex items-center gap-2 text-sm text-stone-600 mb-6">
-      <button onClick={handleBack} className="flex items-center gap-1">
-        <ArrowLeft className="w-4 h-4" />
-        {activeArea ? activeRegion?.name  : "Regions"}
-      </button>
+      {(activeRegion || activeArea) && (
+        <button onClick={backOne} className="flex items-center gap-1">
+          <ArrowLeft className="w-4 h-4" />
+          {activeArea ? "Areas" : "Regions"}
+        </button>
+      )}
+
+      <span className="opacity-50">/</span>
+      <span>{activeRegion?.name ?? "Regions"}</span>
+
+      {activeArea && (
+        <>
+          <span className="opacity-50">/</span>
+          <span>{activeArea.name}</span>
+        </>
+      )}
     </div>
   );
 
-  /* ================= HOTELS ================= */
+  /* ================= REGIONS ONLY (initial) ================= */
 
-  if (activeRegion && activeArea) {
-    const hotels = childrenMap[activeArea.id] || [];
-
+  if (!activeRegion) {
     return (
-      <StepWrapper title={`Stay in ${activeArea.name}`} subtitle="Select one or more hotels">
-        <Breadcrumb />
-
-        <div className="grid grid-cols-4 gap-8">
-          {hotels.map(hotel => {
-            const checked = isSelected(activeRegion.id, hotel.id);
+      <StepWrapper title="Where would you like to go?" subtitle="Choose regions to explore">
+        <div className="grid grid-cols-3 gap-12">
+          {regions.map((region) => {
+            // ✅ Now only true if any area/hotel selected inside
+            const checked = isRegionSelected(region.id);
 
             return (
               <button
-                key={hotel.id}
-                onClick={() => toggleHotel(hotel)}
-                className={`${cardClass(checked)} h-60 rounded-2xl`}
+                key={region.id}
+                onClick={() => openRegion(region)}
+                className={`${cardClass(checked)} h-[250px] rounded-[1.5rem]`}
               >
-                {hotel.image_url && (
-                  <Image src={hotel.image_url} alt={hotel.name} fill className="object-cover" />
-                )}
-                <div className="absolute inset-0 bg-black/35" />
-                <Badge checked={checked} />
-                <div className="absolute bottom-0 inset-x-0 p-5">
-                  <h3 className="text-white font-serif text-m">{hotel.name}</h3>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </StepWrapper>
-    );
-  }
-
-  /* ================= AREAS ================= */
-
-  if (activeRegion) {
-    const areas = childrenMap[activeRegion.id] || [];
-
-    return (
-      <StepWrapper title={`Explore ${activeRegion.name}`} subtitle="Choose areas">
-        <Breadcrumb />
-
-        <div className="grid grid-cols-4 gap-10">
-          {areas.map(area => {
-            const checked = isSelected(activeRegion.id, area.id);
-
-            return (
-              <button
-                key={area.id}
-                onClick={() => handleAreaClick(area)}
-                className={`${cardClass(checked)} h-60 rounded-2xl`}
-              >
-                {area.image_url && (
-                  <Image src={area.image_url} alt={area.name} fill className="object-cover" />
+                {region.image_url && (
+                  <Image src={region.image_url} alt={region.name} fill className="object-cover" />
                 )}
                 <div className="absolute inset-0 bg-black/30" />
                 <Badge checked={checked} />
-                <div className="absolute top-0 inset-x-0 p-7">
-                  <h3 className="text-white font-serif text-l">{area.name}</h3>
+                <div className="absolute top-0 inset-x-0 p-6">
+                  <h2 className="text-white font-serif text-l">{region.name}</h2>
                 </div>
               </button>
             );
@@ -235,31 +252,123 @@ export const Destinations = ({ data, updateData }: Props) => {
     );
   }
 
-  /* ================= REGIONS ================= */
+  /* ================= 3-COLUMN VIEW (Regions widest, Areas medium, Hotels smallest) ================= */
 
   return (
-    <StepWrapper title="Where would you like to go?" subtitle="Choose regions to explore">
-      <div className="grid grid-cols-3 gap-12">
-        {regions.map(region => {
-          const checked = isSelected(region.id);
+    <StepWrapper
+      title="Where would you like to go?"
+      subtitle="Choose regions, areas, and hotels — all in one view"
+    >
+      <Breadcrumb />
 
-          return (
-            <button
-              key={region.id}
-              onClick={() => openRegion(region)}
-              className={`${cardClass(checked)} h-[250px] rounded-[1.5rem]`}
-            >
-              {region.image_url && (
-                <Image src={region.image_url} alt={region.name} fill className="object-cover" />
-              )}
-              <div className="absolute inset-0 bg-black/30" />
-              <Badge checked={checked} />
-              <div className="absolute top-0 inset-x-0 p-6">
-                <h2 className="text-white font-serif text-l">{region.name}</h2>
-              </div>
-            </button>
-          );
-        })}
+      <div className="grid grid-cols-12 gap-10">
+        {/* LEFT: Regions (WIDEST) */}
+        <div className="col-span-5 space-y-4">
+          <h4 className="text-sm font-medium text-stone-700">Regions</h4>
+
+          <div className="grid grid-cols-1 gap-4">
+            {regions.map((region) => {
+              // highlight active region, and ALSO show selection ring if it has chosen children
+              const checked = region.id === activeRegion.id || isRegionSelected(region.id);
+
+              return (
+                <button
+                  key={region.id}
+                  onClick={() => openRegion(region)}
+                  className={`${cardClass(checked)} h-48 rounded-2xl`}
+                >
+                  {region.image_url && (
+                    <Image src={region.image_url} alt={region.name} fill className="object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-black/30" />
+                  <div className="absolute inset-0 p-5 flex items-end">
+                    <h3 className="text-white font-serif text-base">{region.name}</h3>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* MIDDLE: Areas (MEDIUM) */}
+        <div className="col-span-4 space-y-4">
+          <h4 className="text-sm font-medium text-stone-700">
+            Explore {activeRegion.name} &amp; Surroundings
+          </h4>
+
+          {areas.length === 0 ? (
+            <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
+              No areas found for this region.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {areas.map((area) => {
+                const checked = isSelected(activeRegion.id, area.id);
+                const isActive = activeArea?.id === area.id;
+
+                return (
+                  <button
+                    key={area.id}
+                    onClick={() => handleAreaClick(area)}
+                    className={`
+                      ${cardClass(checked)} h-44 rounded-2xl
+                      ${isActive ? "ring-4 ring-amber-600/40" : ""}
+                    `}
+                  >
+                    {area.image_url && (
+                      <Image src={area.image_url} alt={area.name} fill className="object-cover" />
+                    )}
+                    <div className="absolute inset-0 bg-black/30" />
+                    <Badge checked={checked} />
+                    <div className="absolute top-0 inset-x-0 p-6">
+                      <h3 className="text-white font-serif text-l">{area.name}</h3>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: Hotels (SMALLEST) */}
+        <div className="col-span-3 space-y-4">
+          <h4 className="text-sm font-medium text-stone-700">
+            {activeArea ? `Stay in ${activeArea.name}` : "Select an area to see hotels"}
+          </h4>
+
+          {!activeArea ? (
+            <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
+              Choose an area to load hotels here.
+            </div>
+          ) : hotels.length === 0 ? (
+            <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
+              No hotels found under {activeArea.name}.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {hotels.map((hotel) => {
+                const checked = isSelected(activeRegion.id, hotel.id);
+
+                return (
+                  <button
+                    key={hotel.id}
+                    onClick={() => toggleHotel(hotel)}
+                    className={`${cardClass(checked)} h-32 rounded-2xl`}
+                  >
+                    {hotel.image_url && (
+                      <Image src={hotel.image_url} alt={hotel.name} fill className="object-cover" />
+                    )}
+                    <div className="absolute inset-0 bg-black/35" />
+                    <Badge checked={checked} />
+                    <div className="absolute bottom-0 inset-x-0 p-4">
+                      <h3 className="text-white font-serif text-m">{hotel.name}</h3>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </StepWrapper>
   );

@@ -8,7 +8,6 @@ import { TripData } from "../../types/TripPlanner";
 /* ---------------- STEPS ---------------- */
 
 import TripBasicsCombined from "./Steps/TripBasicsCombined";
-import { GolfFocus } from "./Steps/GolfFocus";
 import { Destinations } from "./Steps/Destinations";
 import Experiences from "./Steps/Experiences";
 import Accommodation from "./Steps/Accommodation";
@@ -35,11 +34,6 @@ const steps: StepConfig[] = [
       d.groupSize >= 1 &&
       !!d.lengthOfStay &&
       !!d.journeyType,
-  },
-  {
-    id: "golf-focus",
-    component: GolfFocus,
-    isValid: () => true,
   },
   {
     id: "destinations",
@@ -110,10 +104,7 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
     const index = steps.findIndex((s) => s.id === id);
     if (index === -1) return;
 
-    if (fromReview) {
-      setReturnStep("review");
-    }
-
+    if (fromReview) setReturnStep("review");
     setStepIndex(index);
   };
 
@@ -126,7 +117,6 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
   const handleNext = () => {
     const stepId = currentStep.id;
 
-    // Return to review after editing
     if (returnStep === "review" && stepId !== "review") {
       setReturnStep(null);
       goToStep("review");
