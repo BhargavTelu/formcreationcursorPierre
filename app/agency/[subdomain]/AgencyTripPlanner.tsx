@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import TripPlanner from "@/app/ui-new/components/PlanningForm/TripPlanner";
-import AgencyNavigation from "@/components/AgencyNavigation";
 
 interface Agency {
   id: string;
@@ -25,7 +24,7 @@ export default function AgencyTripPlanner({
   const router = useRouter();
 
   const handleExit = () => {
-    router.push(`/agency/${subdomain}/submissions`);
+    router.push(`/agency/${subdomain}/submissions` as any);
   };
 
   return (

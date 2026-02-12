@@ -31,15 +31,15 @@ const EXPERIENCE_LABELS: Record<string, string> = {
   nature: "Nature & Scenic",
   safari: "Safari & Wildlife",
   city: "City & Culture",
-  adventure: "Adventure",
+  adventure: "Adventure & Outdoors",
   history: "History & Local Life",
 };
 
 const ACCOMMODATION_LABELS: Record<string, string> = {
-  boutique: "Boutique hotel",
-  lodges: "Safari lodge",
-  guesthouse: "Guesthouse / B&B",
-  hotel: "Hotel with bar & pool",
+  boutique: "Boutique hotels",
+  lodges: "Lodges & safari camps",
+  guesthouse: "Guesthouses / B&Bs",
+  hotel: "Hotels with bar & pool",
 };
 
 const PACE_LABELS: Record<string, string> = {
@@ -77,12 +77,14 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
       ? "Not selected"
       : data.destinations
           .map(d => {
-            const region = destinationMap[d.id] ?? d.id;
+            // Use the name from the region object (we now store names directly)
+            const region = d.name || destinationMap[d.id] || d.id;
 
             if (!d.subRegions.length) return region;
 
+            // subRegions is now an array of { id, name } objects
             const subs = d.subRegions
-              .map(id => destinationMap[id] ?? id)
+              .map(sub => sub.name || destinationMap[sub.id] || sub.id)
               .join(", ");
 
             return `${region}: ${subs}`;
