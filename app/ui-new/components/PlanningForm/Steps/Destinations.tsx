@@ -87,11 +87,11 @@ export const Destinations = ({ data, updateData }: Props) => {
       return entry.subRegions.length > 0;
     }
 
-    return entry.subRegions.includes(childId);
+    return entry.subRegions.some((sub) => sub.id === childId);
   };
 
   // ✅ If subRegions becomes empty, remove the region from TripData
-  const upsertRegion = (regionId: string, subRegions: string[]) => {
+  const upsertRegion = (regionId: string, regionName: string, subRegions: Array<{ id: string; name: string }>) => {
     const exists = regionEntry(regionId);
 
     // remove region entry if nothing selected
@@ -104,16 +104,16 @@ export const Destinations = ({ data, updateData }: Props) => {
 
     updateData({
       destinations: exists
-        ? selected.map((d) => (d.id === regionId ? { ...d, subRegions } : d))
-        : [...selected, { id: regionId, subRegions }],
+        ? selected.map((d) => (d.id === regionId ? { id: regionId, name: regionName, subRegions } : d))
+        : [...selected, { id: regionId, name: regionName, subRegions }],
     });
   };
 
-  const ensureRegionExists = (regionId: string) => {
+  const ensureRegionExists = (regionId: string, regionName: string) => {
     if (!regionEntry(regionId)) {
       // create region entry but DO NOT make it "selected" unless we add children
       updateData({
-        destinations: [...selected, { id: regionId, subRegions: [] }],
+        destinations: [...selected, { id: regionId, name: regionName, subRegions: [] }],
       });
     }
   };
@@ -129,17 +129,17 @@ export const Destinations = ({ data, updateData }: Props) => {
   const handleAreaClick = (area: DBPlace) => {
     if (!activeRegion) return;
 
-    ensureRegionExists(activeRegion.id);
+    ensureRegionExists(activeRegion.id, activeRegion.name);
 
     const entry = regionEntry(activeRegion.id);
     const subs = entry?.subRegions ?? [];
 
-    const isCurrentlySelected = subs.includes(area.id);
+    const isCurrentlySelected = subs.some((sub) => sub.id === area.id);
     const updatedSubs = isCurrentlySelected
-      ? subs.filter((id) => id !== area.id)
-      : [...subs, area.id];
+      ? subs.filter((sub) => sub.id !== area.id)
+      : [...subs, { id: area.id, name: area.name }];
 
-    upsertRegion(activeRegion.id, updatedSubs);
+    upsertRegion(activeRegion.id, activeRegion.name, updatedSubs);
 
     // ✅ If unselecting the active area, hide hotels
     if (isCurrentlySelected && activeArea?.id === area.id) {
@@ -157,16 +157,16 @@ export const Destinations = ({ data, updateData }: Props) => {
   const toggleHotel = (hotel: DBPlace) => {
     if (!activeRegion) return;
 
-    ensureRegionExists(activeRegion.id);
+    ensureRegionExists(activeRegion.id, activeRegion.name);
 
     const entry = regionEntry(activeRegion.id);
     const subs = entry?.subRegions ?? [];
 
-    const updated = subs.includes(hotel.id)
-      ? subs.filter((id) => id !== hotel.id)
-      : [...subs, hotel.id];
+    const updated = subs.some((sub) => sub.id === hotel.id)
+      ? subs.filter((sub) => sub.id !== hotel.id)
+      : [...subs, { id: hotel.id, name: hotel.name }];
 
-    upsertRegion(activeRegion.id, updated);
+    upsertRegion(activeRegion.id, activeRegion.name, updated);
   };
 
   /* ================= BACK HANDLER ================= */

@@ -71,7 +71,21 @@ const TOTAL_STEPS = steps.length;
 
 /* ---------------- COMPONENT ---------------- */
 
-export default function TripPlanner({ onExit }: { onExit: () => void }) {
+interface Agency {
+  id: string;
+  name: string;
+  subdomain: string;
+  logo_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+}
+
+interface TripPlannerProps {
+  onExit: () => void;
+  agency?: Agency;
+}
+
+export default function TripPlanner({ onExit, agency }: TripPlannerProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [returnStep, setReturnStep] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -131,6 +145,30 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
     setStepIndex((i) => Math.min(TOTAL_STEPS - 1, i + 1));
   };
 
+  /* ---------- LABEL MAPPINGS ---------- */
+
+  const EXPERIENCE_LABELS: Record<string, string> = {
+    beach: "Beach & Coast",
+    nature: "Nature & Scenic",
+    safari: "Safari & Wildlife",
+    city: "City & Culture",
+    adventure: "Adventure & Outdoors",
+    history: "History & Local Life",
+  };
+
+  const ACCOMMODATION_LABELS: Record<string, string> = {
+    boutique: "Boutique hotels",
+    lodges: "Lodges & safari camps",
+    guesthouse: "Guesthouses / B&Bs",
+    hotel: "Hotels with bar & pool",
+  };
+
+  const PACE_LABELS: Record<string, string> = {
+    relaxed: "Unhurried",
+    balanced: "Balanced",
+    active: "Full days",
+  };
+
   /* ---------- SUBMIT ---------- */
 
   const submitTrip = async () => {
@@ -138,10 +176,60 @@ export default function TripPlanner({ onExit }: { onExit: () => void }) {
     setSubmitting(true);
 
     try {
+      // Transform data: Map IDs to full labels and clean up empty fields
+      const submissionData: any = {
+        // Basic info
+        travelerName: tripData.travelerName,
+        groupSize: tripData.groupSize,
+
+        // Travel timing
+        travelMonths: tripData.travelMonths,
+        ...(tripData.specificDate && { specificDate: tripData.specificDate }),
+
+        // Journey type
+        journeyType: tripData.journeyType,
+        ...(tripData.journeyPath && { journeyPath: tripData.journeyPath }),
+
+        // Length of stay
+        lengthOfStay: tripData.lengthOfStay,
+        ...(tripData.customLengthOfStay && { customLengthOfStay: tripData.customLengthOfStay }),
+
+        // Golf
+        includesGolf: tripData.includesGolf,
+        ...(tripData.golfRounds && { golfRounds: tripData.golfRounds }),
+        ...(tripData.mustHaveGolfCourses?.length && { mustHaveGolfCourses: tripData.mustHaveGolfCourses }),
+
+        // Destinations (already has names)
+        destinations: tripData.destinations,
+
+        // ✅ TRANSFORM: Map IDs to full labels
+        experiences: tripData.experiences.map((id) => EXPERIENCE_LABELS[id] || id),
+        accommodationTypes: tripData.accommodationTypes.map((id) => ACCOMMODATION_LABELS[id] || id),
+        pace: tripData.pace ? PACE_LABELS[tripData.pace] || tripData.pace : "",
+
+        // Optional fields - only include if not empty
+        ...(tripData.accommodationFeel && { accommodationFeel: tripData.accommodationFeel }),
+        ...(tripData.generalNotes && { generalNotes: tripData.generalNotes }),
+
+        // Timestamp
+        timestamp: new Date().toISOString(),
+
+        // Include agency context if present
+        ...(agency && {
+          agency: {
+            id: agency.id,
+            name: agency.name,
+            subdomain: agency.subdomain,
+          },
+        }),
+      };
+
+      console.log("🚀 Submitting trip data:", submissionData);
+
       await fetch("/api/trip-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tripData),
+        body: JSON.stringify(submissionData),
       });
 
       goToStep("thank-you");

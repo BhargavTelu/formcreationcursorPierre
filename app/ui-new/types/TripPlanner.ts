@@ -1,6 +1,10 @@
 export interface SelectedDestination {
   id: string;
-  subRegions: string[];
+  name: string;
+  subRegions: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 export interface TripData {

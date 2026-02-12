@@ -33,6 +33,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    // Save to trip_requests table (always)
     const { error } = await supabase
       .from("trip_requests")
       .insert([{ data: body }]);
@@ -40,6 +41,27 @@ export async function POST(req: Request) {
     if (error) {
       console.error(error);
       return NextResponse.json({ success: false }, { status: 500 });
+    }
+
+    // If agency context present, also save to form_submissions table
+    if (body.agency?.id) {
+      const submissionData = {
+        agency_id: body.agency.id,
+        client_name: body.travelerName || null,
+        num_travellers: body.groupSize || null,
+        route_preference: body.journeyType === "pre-defined" ? "predefined" : body.journeyType === "custom" ? "trip-design" : null,
+        form_data: body,
+        webhook_sent: false,
+      };
+
+      const { error: submissionError } = await supabase
+        .from("form_submissions")
+        .insert([submissionData]);
+
+      if (submissionError) {
+        console.error("Failed to save to form_submissions:", submissionError);
+        // Don't fail the request - trip_requests was saved successfully
+      }
     }
 
     // Forward to n8n webhook (if configured) so workflows trigger.

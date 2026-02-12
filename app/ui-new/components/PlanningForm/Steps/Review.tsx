@@ -36,17 +36,16 @@ const EXPERIENCE_LABELS: Record<string, string> = {
   beach: "Beach & Coast",
   nature: "Nature & Scenic",
   safari: "Safari & Wildlife",
-  "food-wine": "Food & Wine",
   city: "City & Culture",
-  adventure: "Adventure",
+  adventure: "Adventure & Outdoors",
   history: "History & Local Life",
 };
 
 const ACCOMMODATION_LABELS: Record<string, string> = {
-  boutique: "Boutique hotel",
-  lodges: "Safari lodge",
-  guesthouse: "Guesthouse / B&B",
-  hotel: "Hotel with bar & pool",
+  boutique: "Boutique hotels",
+  lodges: "Lodges & safari camps",
+  guesthouse: "Guesthouses / B&Bs",
+  hotel: "Hotels with bar & pool",
 };
 
 const PACE_LABELS: Record<string, string> = {
@@ -121,15 +120,17 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
       ? "—"
       : data.destinations
           .map((region) => {
-            const regionName = destinationMap[region.id] ?? region.id;
+            // Use the name from the region object (we now store names directly)
+            const regionName = region.name || destinationMap[region.id] || region.id;
 
             if (!region.subRegions.length) return regionName;
 
+            // subRegions is now an array of { id, name } objects
             const subNames = region.subRegions
-              .map((id) => destinationMap[id] ?? id)
+              .map((sub) => sub.name || destinationMap[sub.id] || sub.id)
               .join(", ");
 
-            return `${regionName}: [${subNames}]`;
+            return `${regionName}: ${subNames}`;
           })
           .join("\n");
 
