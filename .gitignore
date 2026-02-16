@@ -47,3 +47,4 @@ pnpm-debug.log*
 
 # Types from Next
 .next/types/
+CLAUDE.md

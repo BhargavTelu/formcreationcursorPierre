@@ -14,6 +14,14 @@ interface DBPlace {
   name: string;
   image_url: string | null;
   parent_id: string | null;
+  isHotel?: boolean;
+}
+
+interface DBHotel {
+  id: string;
+  name: string;
+  image_url: string | null;
+  destination_id: string;
 }
 
 interface Props {
@@ -33,11 +41,38 @@ export const Destinations = ({ data, updateData }: Props) => {
   /* ================= FETCH ================= */
 
   useEffect(() => {
-    supabase
-      .from("destinations")
-      .select("id, name, image_url, parent_id")
-      .order("name")
-      .then(({ data }) => setPlaces(data || []));
+    const fetchData = async () => {
+      // Fetch destinations
+      const { data: destData } = await supabase
+        .from("destinations")
+        .select("id, name, image_url, parent_id")
+        .order("name");
+
+      // Fetch hotels from the separate hotels table
+      const { data: hotelData } = await supabase
+        .from("hotels")
+        .select("id, name, image_url, destination_id")
+        .order("name");
+
+      const destinations: DBPlace[] = (destData || []).map((d) => ({
+        ...d,
+        isHotel: false,
+      }));
+
+      // Convert hotels into DBPlace entries so they appear as children
+      // of their parent destination via destination_id
+      const hotelPlaces: DBPlace[] = (hotelData || []).map((h: DBHotel) => ({
+        id: h.id,
+        name: h.name,
+        image_url: h.image_url,
+        parent_id: h.destination_id,
+        isHotel: true,
+      }));
+
+      setPlaces([...destinations, ...hotelPlaces]);
+    };
+
+    fetchData();
   }, []);
 
   /* ================= DERIVED ================= */
