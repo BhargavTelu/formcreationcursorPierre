@@ -48,3 +48,10 @@ pnpm-debug.log*
 # Types from Next
 .next/types/
 CLAUDE.md
+destinations_rows (1).csv
+destinations_with_parents.csv
+generate_image_sql.js
+update_images.sql
+hotels_rows.csv
+hotels_with_regions.csv
+

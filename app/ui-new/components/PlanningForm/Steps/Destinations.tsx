@@ -78,7 +78,7 @@ export const Destinations = ({ data, updateData }: Props) => {
   /* ================= DERIVED ================= */
 
   const regions = useMemo(
-    () => places.filter((p) => p.parent_id === null).slice(0, 8),
+    () => places.filter((p) => p.parent_id === null),
     [places]
   );
 
