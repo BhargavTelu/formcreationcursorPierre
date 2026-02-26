@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
+    minimumCacheTTL: 2592000, // 30 days — Dropbox URLs are stable, cache optimized images
     remotePatterns: [
       // Dropbox direct links
       { protocol: 'https', hostname: 'dl.dropboxusercontent.com' },

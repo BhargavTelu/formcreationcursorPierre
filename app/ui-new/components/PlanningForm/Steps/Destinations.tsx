@@ -7,6 +7,13 @@ import { TripData } from "../../../types/TripPlanner";
 import { supabase } from "@/lib/supabase";
 import { Plus, Check, ArrowLeft } from "lucide-react";
 
+/* ================= BLUR PLACEHOLDER ================= */
+
+// Static blurDataURL required for remote/dynamic images with placeholder="blur".
+// A warm earthy tone that matches African landscape photography.
+const BLUR_DATA_URL =
+  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAARCAAGAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABgUH/8QAIhAAAQQCAgMBAAAAAAAAAAAAAQIDBAUREiExQVH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8Amr4f1KfXbhFdYjrS1JYZQtSQs8gEpJwPkjFZKaKUpSlKUoH/2Q==";
+
 /* ================= TYPES ================= */
 
 interface DBPlace {
@@ -33,6 +40,7 @@ interface Props {
 
 export const Destinations = ({ data, updateData }: Props) => {
   const [places, setPlaces] = useState<DBPlace[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeRegion, setActiveRegion] = useState<DBPlace | null>(null);
   const [activeArea, setActiveArea] = useState<DBPlace | null>(null);
 
@@ -70,6 +78,7 @@ export const Destinations = ({ data, updateData }: Props) => {
       }));
 
       setPlaces([...destinations, ...hotelPlaces]);
+      setLoading(false);
     };
 
     fetchData();
@@ -261,27 +270,41 @@ export const Destinations = ({ data, updateData }: Props) => {
     return (
       <StepWrapper title="Where would you like to go?" subtitle="Choose regions to explore">
         <div className="grid grid-cols-3 gap-12">
-          {regions.map((region) => {
-            // ✅ Now only true if any area/hotel selected inside
-            const checked = isRegionSelected(region.id);
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-[250px] rounded-[1.5rem] bg-stone-200 animate-pulse" />
+              ))
+            : regions.map((region, index) => {
+                // ✅ Now only true if any area/hotel selected inside
+                const checked = isRegionSelected(region.id);
 
-            return (
-              <button
-                key={region.id}
-                onClick={() => openRegion(region)}
-                className={`${cardClass(checked)} h-[250px] rounded-[1.5rem]`}
-              >
-                {region.image_url && (
-                  <Image src={region.image_url} alt={region.name} fill className="object-cover" />
-                )}
-                <div className="absolute inset-0 bg-black/30" />
-                <Badge checked={checked} />
-                <div className="absolute top-0 inset-x-0 p-6">
-                  <h2 className="text-white font-serif text-l">{region.name}</h2>
-                </div>
-              </button>
-            );
-          })}
+                return (
+                  <button
+                    key={region.id}
+                    onClick={() => openRegion(region)}
+                    className={`${cardClass(checked)} h-[250px] rounded-[1.5rem]`}
+                  >
+                    {region.image_url && (
+                      <Image
+                        src={region.image_url}
+                        alt={region.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 896px) calc(33vw - 32px), 282px"
+                        priority={index < 3}
+                        quality={60}
+                        placeholder="blur"
+                        blurDataURL={BLUR_DATA_URL}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-black/30" />
+                    <Badge checked={checked} />
+                    <div className="absolute top-0 inset-x-0 p-6">
+                      <h2 className="text-white font-serif text-l">{region.name}</h2>
+                    </div>
+                  </button>
+                );
+              })}
         </div>
       </StepWrapper>
     );
@@ -313,7 +336,16 @@ export const Destinations = ({ data, updateData }: Props) => {
                   className={`${cardClass(checked)} h-48 rounded-2xl`}
                 >
                   {region.image_url && (
-                    <Image src={region.image_url} alt={region.name} fill className="object-cover" />
+                    <Image
+                      src={region.image_url}
+                      alt={region.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 896px) calc(42vw - 40px), 340px"
+                      quality={60}
+                      placeholder="blur"
+                      blurDataURL={BLUR_DATA_URL}
+                    />
                   )}
                   <div className="absolute inset-0 bg-black/30" />
                   <div className="absolute inset-0 p-5 flex items-end">
@@ -351,7 +383,16 @@ export const Destinations = ({ data, updateData }: Props) => {
                     `}
                   >
                     {area.image_url && (
-                      <Image src={area.image_url} alt={area.name} fill className="object-cover" />
+                      <Image
+                        src={area.image_url}
+                        alt={area.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 896px) calc(33vw - 32px), 272px"
+                        quality={60}
+                        placeholder="blur"
+                        blurDataURL={BLUR_DATA_URL}
+                      />
                     )}
                     <div className="absolute inset-0 bg-black/30" />
                     <Badge checked={checked} />
@@ -391,7 +432,16 @@ export const Destinations = ({ data, updateData }: Props) => {
                     className={`${cardClass(checked)} h-32 rounded-2xl`}
                   >
                     {hotel.image_url && (
-                      <Image src={hotel.image_url} alt={hotel.name} fill className="object-cover" />
+                      <Image
+                        src={hotel.image_url}
+                        alt={hotel.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 896px) calc(25vw - 24px), 204px"
+                        quality={60}
+                        placeholder="blur"
+                        blurDataURL={BLUR_DATA_URL}
+                      />
                     )}
                     <div className="absolute inset-0 bg-black/35" />
                     <Badge checked={checked} />
