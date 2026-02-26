@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { StepWrapper } from "../StepWrapper";
 import { TripData } from "../../../types/TripPlanner";
+import { EXPERIENCE_LABELS, ACCOMMODATION_LABELS, PACE_LABELS } from "../../../types/labels";
 import jsPDF from "jspdf";
-import { supabase } from "@/lib/supabase";
 import {
   CheckCircle,
   Download,
@@ -18,73 +17,22 @@ interface ThankYouProps {
   onExit: () => void;
 }
 
-interface DestinationRow {
-  id: string;
-  name: string;
-  parent_id: string | null;
-}
-
-/* ================= LABEL MAPS ================= */
-
-const EXPERIENCE_LABELS: Record<string, string> = {
-  beach: "Beach & Coast",
-  nature: "Nature & Scenic",
-  safari: "Safari & Wildlife",
-  city: "City & Culture",
-  adventure: "Adventure & Outdoors",
-  history: "History & Local Life",
-};
-
-const ACCOMMODATION_LABELS: Record<string, string> = {
-  boutique: "Boutique hotels",
-  lodges: "Lodges & safari camps",
-  guesthouse: "Guesthouses / B&Bs",
-  hotel: "Hotels with bar & pool",
-};
-
-const PACE_LABELS: Record<string, string> = {
-  relaxed: "Unhurried",
-  balanced: "Balanced",
-  active: "Full days",
-};
-
 /* ================= COMPONENT ================= */
 
 export default function ThankYou({ data, onExit }: ThankYouProps) {
-  const [destinations, setDestinations] = useState<DestinationRow[]>([]);
-
-  /* ---------- FETCH DESTINATION NAMES ---------- */
-
-  useEffect(() => {
-    supabase
-      .from("destinations")
-      .select("id, name, parent_id")
-      .then(({ data }) => setDestinations(data || []));
-  }, []);
-
-  const destinationMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    destinations.forEach(d => {
-      map[d.id] = d.name;
-    });
-    return map;
-  }, [destinations]);
-
   /* ---------- FORMAT DESTINATIONS ---------- */
 
   const destinationText =
     data.destinations.length === 0
       ? "Not selected"
       : data.destinations
-          .map(d => {
-            // Use the name from the region object (we now store names directly)
-            const region = d.name || destinationMap[d.id] || d.id;
+          .map((d) => {
+            const region = d.name || d.id;
 
             if (!d.subRegions.length) return region;
 
-            // subRegions is now an array of { id, name } objects
             const subs = d.subRegions
-              .map(sub => sub.name || destinationMap[sub.id] || sub.id)
+              .map((sub) => sub.name || sub.id)
               .join(", ");
 
             return `${region}: ${subs}`;
@@ -96,7 +44,7 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
   const accommodationText =
     data.accommodationTypes.length > 0
       ? data.accommodationTypes
-          .map(a => ACCOMMODATION_LABELS[a] ?? a)
+          .map((a) => ACCOMMODATION_LABELS[a] ?? a)
           .join(", ")
       : "Not specified";
 
@@ -108,9 +56,7 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
 
   const golfCoursesText =
     data.mustHaveGolfCourses && data.mustHaveGolfCourses.length > 0
-      ? data.mustHaveGolfCourses
-          .map(id => destinationMap[id] ?? id)
-          .join(", ")
+      ? data.mustHaveGolfCourses.join(", ")
       : "Designer selection";
 
   /* ================= PDF ================= */
@@ -153,7 +99,7 @@ export default function ThankYou({ data, onExit }: ThankYouProps) {
     drawRow(
       "Experiences",
       data.experiences.length
-        ? data.experiences.map(e => EXPERIENCE_LABELS[e]).join(", ")
+        ? data.experiences.map((e) => EXPERIENCE_LABELS[e] ?? e).join(", ")
         : "Not selected"
     );
     drawRow("Accommodation", accommodationText);

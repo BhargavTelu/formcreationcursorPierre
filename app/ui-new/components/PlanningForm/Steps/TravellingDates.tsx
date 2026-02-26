@@ -8,25 +8,24 @@ interface TravellingDatesProps {
   goToStep?: (id: string) => void;
 }
 
-const months = [
-  "Jan 2026",
-  "Feb 2026",
-  "Mar 2026",
-  "Apr 2026",
-  "May 2026",
-  "Jun 2026",
-  "Jul 2026",
-  "Aug 2026",
-  "Sep 2026",
-  "Oct 2026",
-  "Nov 2026",
-  "Dec 2026",
-];
+/** Generate the next 12 calendar months starting from today */
+function getUpcomingMonths(): string[] {
+  const SHORT_MONTHS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const now = new Date();
+  const result: string[] = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    result.push(`${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`);
+  }
+  return result;
+}
 
-const TravellingDates = ({
-  data,
-  updateData,
-}: TravellingDatesProps) => {
+const months = getUpcomingMonths();
+
+const TravellingDates = ({ data, updateData }: TravellingDatesProps) => {
   const handleSelect = (month: string) => {
     updateData({ travelMonths: [month] });
   };

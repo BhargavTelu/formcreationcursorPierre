@@ -1,6 +1,5 @@
 "use client";
 
-import { StepWrapper } from "../StepWrapper";
 import { Input } from "../../ui/input";
 import { TripData } from "../../../types/TripPlanner";
 import { Minus, Plus } from "lucide-react";
@@ -20,11 +19,7 @@ export default function TripBasics({ data, updateData }: Props) {
   };
 
   return (
-    <StepWrapper
-      title=""
-      subtitle=""
-    >
-      <div className="max-w-lg mx-auto space-y-14">
+    <div className="max-w-lg mx-auto space-y-14">
 
         {/* TRAVELLER NAME */}
         <div className="flex flex-col items-center space-y-3">
@@ -110,6 +105,5 @@ export default function TripBasics({ data, updateData }: Props) {
           </div>
         </div>
       </div>
-    </StepWrapper>
   );
 }

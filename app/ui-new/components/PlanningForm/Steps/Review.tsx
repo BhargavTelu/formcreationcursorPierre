@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { StepWrapper } from "../StepWrapper";
 import { TripData } from "../../../types/TripPlanner";
-import { supabase } from "@/lib/supabase";
+import { EXPERIENCE_LABELS, ACCOMMODATION_LABELS, PACE_LABELS } from "../../../types/labels";
 import {
   User,
   Users,
@@ -14,7 +13,7 @@ import {
   Sparkles,
   Home,
   Gauge,
-  Flag, // ✅ FIX: Lucide-supported icon
+  Flag,
   Pencil,
 } from "lucide-react";
 
@@ -24,35 +23,6 @@ interface ReviewStepProps {
   data: TripData;
   goToStep: (id: string, fromReview?: boolean) => void;
 }
-
-interface DestinationRow {
-  id: string;
-  name: string;
-}
-
-/* ================= LABELS ================= */
-
-const EXPERIENCE_LABELS: Record<string, string> = {
-  beach: "Beach & Coast",
-  nature: "Nature & Scenic",
-  safari: "Safari & Wildlife",
-  city: "City & Culture",
-  adventure: "Adventure & Outdoors",
-  history: "History & Local Life",
-};
-
-const ACCOMMODATION_LABELS: Record<string, string> = {
-  boutique: "Boutique hotels",
-  lodges: "Lodges & safari camps",
-  guesthouse: "Guesthouses / B&Bs",
-  hotel: "Hotels with bar & pool",
-};
-
-const PACE_LABELS: Record<string, string> = {
-  relaxed: "Unhurried",
-  balanced: "Balanced",
-  active: "Full days",
-};
 
 /* ================= ROW ================= */
 
@@ -92,27 +62,6 @@ function Row({
 /* ================= MAIN ================= */
 
 export default function Review({ data, goToStep }: ReviewStepProps) {
-  const [destinations, setDestinations] = useState<DestinationRow[]>([]);
-
-  /* ---------- FETCH DESTINATIONS ---------- */
-
-  useEffect(() => {
-    supabase
-      .from("destinations")
-      .select("id, name")
-      .then(({ data }) => setDestinations(data || []));
-  }, []);
-
-  /* ---------- MAP ---------- */
-
-  const destinationMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    destinations.forEach((d) => {
-      map[d.id] = d.name;
-    });
-    return map;
-  }, [destinations]);
-
   /* ================= DESTINATION SUMMARY ================= */
 
   const destinationValue =
@@ -120,14 +69,12 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
       ? "—"
       : data.destinations
           .map((region) => {
-            // Use the name from the region object (we now store names directly)
-            const regionName = region.name || destinationMap[region.id] || region.id;
+            const regionName = region.name || region.id;
 
             if (!region.subRegions.length) return regionName;
 
-            // subRegions is now an array of { id, name } objects
             const subNames = region.subRegions
-              .map((sub) => sub.name || destinationMap[sub.id] || sub.id)
+              .map((sub) => sub.name || sub.id)
               .join(", ");
 
             return `${regionName}: ${subNames}`;
@@ -141,9 +88,7 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
     : [
         `Rounds planned: ${data.golfRounds ?? 1}`,
         data.mustHaveGolfCourses?.length
-          ? `Must-have courses: ${data.mustHaveGolfCourses
-              .map((id) => destinationMap[id] ?? id)
-              .join(", ")}`
+          ? `Must-have courses: ${data.mustHaveGolfCourses.join(", ")}`
           : "Designer will include iconic courses",
       ].join("\n");
 
@@ -159,28 +104,28 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
           icon={User}
           label="Traveller"
           value={data.travelerName || "—"}
-          onEdit={() => goToStep("trip-basics", true)}
+          onEdit={() => goToStep("trip-basics-combined", true)}
         />
 
         <Row
           icon={Users}
           label="Group size"
           value={`${data.groupSize} people`}
-          onEdit={() => goToStep("group-size", true)}
+          onEdit={() => goToStep("trip-basics-combined", true)}
         />
 
         <Row
           icon={Calendar}
           label="Travel timing"
           value={data.travelMonths.join(", ") || "Flexible"}
-          onEdit={() => goToStep("travel-date", true)}
+          onEdit={() => goToStep("trip-basics-combined", true)}
         />
 
         <Row
           icon={Route}
           label="Journey type"
           value={data.journeyType || "—"}
-          onEdit={() => goToStep("journey-type", true)}
+          onEdit={() => goToStep("trip-basics-combined", true)}
         />
 
         <Row
@@ -191,7 +136,7 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
               ? `${data.customLengthOfStay} nights`
               : data.lengthOfStay || "—"
           }
-          onEdit={() => goToStep("length-of-stay", true)}
+          onEdit={() => goToStep("trip-basics-combined", true)}
         />
 
         <Row
@@ -202,10 +147,10 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
         />
 
         <Row
-          icon={Flag} // ✅ SAFE ICON
+          icon={Flag}
           label="Golf"
           value={golfValue}
-          onEdit={() => goToStep("golf-focus", true)}
+          onEdit={() => goToStep("trip-basics-combined", true)}
         />
 
         <Row
@@ -213,7 +158,7 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
           label="Experiences"
           value={
             data.experiences.length
-              ? data.experiences.map((e) => EXPERIENCE_LABELS[e]).join(", ")
+              ? data.experiences.map((e) => EXPERIENCE_LABELS[e] ?? e).join(", ")
               : "—"
           }
           onEdit={() => goToStep("experiences", true)}
@@ -225,7 +170,7 @@ export default function Review({ data, goToStep }: ReviewStepProps) {
           value={
             data.accommodationTypes.length
               ? data.accommodationTypes
-                  .map((a) => ACCOMMODATION_LABELS[a])
+                  .map((a) => ACCOMMODATION_LABELS[a] ?? a)
                   .join(", ")
               : "—"
           }

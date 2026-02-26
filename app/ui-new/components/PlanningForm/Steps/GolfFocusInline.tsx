@@ -49,11 +49,7 @@ export const GolfFocusInline = ({ data, updateData }: Props) => {
   }, [enabled]);
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
-      {/* Title */}
-     
-
-      {/* Card */}
+    <div className="max-w-xl mx-auto">
       <div
         className={`
           rounded-2xl border bg-card px-6 py-5 transition-all duration-300
@@ -73,10 +69,9 @@ export const GolfFocusInline = ({ data, updateData }: Props) => {
             </div>
 
             <div>
-              <p className="text-base font-serif font-medium">          Would you like to include golf?
-</p>
+              <p className="text-base font-serif font-medium">Would you like to include golf?</p>
               <p className="text-sm text-muted-foreground">
-          Add golf to your journey and choose the number of rounds.
+                Add golf to your journey and choose the number of rounds.
               </p>
             </div>
           </div>
