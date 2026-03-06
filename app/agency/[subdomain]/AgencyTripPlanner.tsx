@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import TripPlanner from "@/app/ui-new/components/PlanningForm/TripPlanner";
 
 interface Agency {
@@ -19,24 +19,23 @@ interface AgencyTripPlannerProps {
 
 export default function AgencyTripPlanner({
   agency,
-  subdomain,
 }: AgencyTripPlannerProps) {
-  const router = useRouter();
+  const [formKey, setFormKey] = useState(0);
 
+  // Reset the form back to step 1 with all fields cleared, without logging out
   const handleExit = () => {
-    router.push(`/agency/${subdomain}/submissions` as any);
+    setFormKey((k) => k + 1);
   };
 
   return (
     <div
       className="min-h-screen"
       style={{
-        // Set CSS variables for agency branding
         ["--agency-primary" as any]: agency.primary_color,
         ["--agency-secondary" as any]: agency.secondary_color,
       }}
     >
-      <TripPlanner onExit={handleExit} agency={agency} />
+      <TripPlanner key={formKey} onExit={handleExit} agency={agency} />
     </div>
   );
 }
