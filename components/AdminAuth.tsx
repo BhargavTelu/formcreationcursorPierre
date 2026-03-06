@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -55,11 +55,8 @@ export default function AdminAuth() {
         method: 'POST',
         credentials: 'include',
       });
-      
-      setUser(null);
-      setMessage('Signed out');
-      
-      // Redirect to login
+      // Clear client-side Supabase session from localStorage
+      await supabase.auth.signOut();
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
@@ -67,10 +64,10 @@ export default function AdminAuth() {
     }
   };
 
-  // Check user on mount
-  if (user === null) {
+  // Check user on mount only
+  useEffect(() => {
     checkUser();
-  }
+  }, []);
 
   if (user) {
     return (
